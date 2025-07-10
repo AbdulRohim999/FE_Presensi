@@ -144,12 +144,15 @@ export default function Dashboard() {
 
       if (!response.inCampusNetwork) {
         toast.error(
-          "Anda harus menggunakan jaringan kampus untuk melakukan Absensi"
+          "Anda harus menggunakan jaringan kampus untuk melakukan Absensi. Pastikan Anda terhubung ke WiFi kampus."
         );
+      } else {
+        console.log("Berhasil terhubung ke jaringan kampus");
       }
     } catch (error) {
       console.error("Error checking network:", error);
       setIsInCampusNetwork(false);
+      toast.error("Gagal memeriksa jaringan kampus. Silakan coba lagi.");
     }
   };
 

@@ -285,13 +285,6 @@ interface PeriodeParams {
   startDate: string;
   endDate: string;
 }
-
-// Interface untuk response pengecekan jaringan
-interface NetworkCheckResponse {
-  inCampusNetwork: boolean;
-  clientIp: string;
-}
-
 // Interface untuk request tambah admin
 export interface AddAdminRequest {
   firstname: string;
@@ -1038,13 +1031,95 @@ export const getSuperAdminTotalAdmins = async (
   }
 };
 
-// Fungsi untuk mengecek jaringan kampus
+// Fungsi untuk mendeteksi IP lokal perangkat
+export const getLocalIP = (): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Buat RTCPeerConnection untuk mendeteksi IP lokal
+      const RTCPeerConnection: typeof window.RTCPeerConnection =
+        window.RTCPeerConnection ||
+        (
+          window as {
+            webkitRTCPeerConnection?: typeof window.RTCPeerConnection;
+          }
+        ).webkitRTCPeerConnection ||
+        (window as { mozRTCPeerConnection?: typeof window.RTCPeerConnection })
+          .mozRTCPeerConnection;
+
+      if (!RTCPeerConnection) {
+        reject(new Error("WebRTC tidak didukung di browser ini"));
+        return;
+      }
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+
+      const ips: string[] = [];
+
+      pc.createDataChannel("");
+      pc.createOffer()
+        .then((offer: RTCSessionDescriptionInit) =>
+          pc.setLocalDescription(offer)
+        )
+        .catch((err: Error) => reject(err));
+
+      pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+        if (!event.candidate) {
+          // Filter IP lokal (bukan public IP)
+          const localIPs = ips.filter(
+            (ip) =>
+              ip.startsWith("192.168.") ||
+              ip.startsWith("10.") ||
+              ip.startsWith("172.") ||
+              ip === "127.0.0.1" ||
+              ip === "localhost"
+          );
+
+          if (localIPs.length > 0) {
+            resolve(localIPs[0]);
+          } else {
+            reject(new Error("Tidak dapat mendeteksi IP lokal"));
+          }
+          pc.close();
+        } else {
+          const ip = event.candidate.candidate.split(" ")[4];
+          if (ip && !ips.includes(ip)) {
+            ips.push(ip);
+          }
+        }
+      };
+
+      // Timeout setelah 5 detik
+      setTimeout(() => {
+        pc.close();
+        reject(new Error("Timeout mendeteksi IP lokal"));
+      }, 5000);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// Update fungsi checkCampusNetwork untuk menggunakan IP lokal
 export const checkCampusNetwork = async (
   token: string
-): Promise<NetworkCheckResponse> => {
+): Promise<{ inCampusNetwork: boolean; clientIp?: string }> => {
   try {
-    const response = await apiClient.get(
-      `${BASE_URL}/api/user/absensi/check-network`,
+    // Coba dapatkan IP lokal terlebih dahulu
+    let localIP: string | undefined;
+    try {
+      localIP = await getLocalIP();
+      console.log("IP Lokal terdeteksi:", localIP);
+    } catch (error) {
+      console.warn("Tidak dapat mendeteksi IP lokal:", error);
+    }
+
+    const response = await apiClient.post(
+      `${BASE_URL}/api/user/check-campus-network`,
+      {
+        clientIP: localIP, // Kirim IP lokal jika berhasil dideteksi
+      },
       {
         headers: {
           Authorization: `Bearer ${token}`,
