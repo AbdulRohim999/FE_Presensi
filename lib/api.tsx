@@ -521,12 +521,20 @@ export const doAbsensi = async (
   tipeAbsen: "pagi" | "siang" | "sore"
 ): Promise<AbsensiResponse> => {
   try {
+    let localIP: string | undefined;
+    try {
+      localIP = await getLocalIP();
+    } catch {
+      // Jika gagal deteksi IP lokal, biarkan undefined
+      localIP = undefined;
+    }
     const response = await apiClient.post(
       `${BASE_URL}/api/user/absensi`,
       { tipeAbsen } as AbsensiRequest,
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          ...(localIP ? { "X-Local-Client-IP": localIP } : {}),
         },
       }
     );

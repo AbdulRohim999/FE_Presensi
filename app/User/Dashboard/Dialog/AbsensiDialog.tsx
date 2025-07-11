@@ -7,6 +7,14 @@ import { doAbsensi } from "@/lib/api";
 import { Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useState } from "react";
 
+// Tipe response absensi yang menggabungkan kemungkinan message dari backend
+type AbsensiResponseWithMessage = {
+  tipeAbsen?: string;
+  message?: string;
+  status?: string;
+  result?: string;
+};
+
 export default function AbsensiDialog({
   absensiHariIni,
   setAbsensiAlert,
@@ -127,23 +135,38 @@ export default function AbsensiDialog({
 
     setIsLoading(tipeAbsen);
     try {
-      await doAbsensi(token, tipeAbsen);
+      const response: AbsensiResponseWithMessage = await doAbsensi(
+        token,
+        tipeAbsen
+      );
       setAbsensiAlert({
         type: "success",
-        message: `Absensi ${tipeAbsen} berhasil pada ${currentTime.toLocaleTimeString()}`,
+        message:
+          response.message ||
+          response.status ||
+          response.result ||
+          `Absensi ${tipeAbsen} berhasil pada ${currentTime.toLocaleTimeString()}`,
       });
       if (onSuccess) onSuccess();
       // Refresh data absensi jika diperlukan
     } catch (error) {
       console.error(`Error melakukan absensi ${tipeAbsen}:`, error);
-      if (error instanceof Error) {
-        setAbsensiAlert({ type: "error", message: error.message });
-      } else {
-        setAbsensiAlert({
-          type: "error",
-          message: `Gagal melakukan absensi ${tipeAbsen}`,
-        });
+      // Coba ambil pesan error dari response backend jika ada
+      let errorMsg = `Gagal melakukan absensi ${tipeAbsen}`;
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as { response?: unknown }).response === "object" &&
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message
+      ) {
+        errorMsg = (error as { response: { data: { message: string } } })
+          .response.data.message;
+      } else if (error instanceof Error && error.message) {
+        errorMsg = error.message;
       }
+      setAbsensiAlert({ type: "error", message: errorMsg });
     } finally {
       setIsLoading(null);
     }
