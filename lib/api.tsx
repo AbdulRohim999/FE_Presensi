@@ -1043,8 +1043,7 @@ export const getSuperAdminTotalAdmins = async (
 export const getLocalIP = (): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
-      // Buat RTCPeerConnection untuk mendeteksi IP lokal
-      const RTCPeerConnection: typeof window.RTCPeerConnection =
+      const RTCPeerConnection =
         window.RTCPeerConnection ||
         (
           window as {
@@ -1059,52 +1058,39 @@ export const getLocalIP = (): Promise<string> => {
         return;
       }
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-
-      const ips: string[] = [];
-
+      const pc = new RTCPeerConnection({ iceServers: [] });
       pc.createDataChannel("");
-      pc.createOffer()
-        .then((offer: RTCSessionDescriptionInit) =>
-          pc.setLocalDescription(offer)
-        )
-        .catch((err: Error) => reject(err));
+      pc.createOffer().then((offer) => pc.setLocalDescription(offer));
 
-      pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-        if (!event.candidate) {
-          // Filter IP lokal (bukan public IP)
-          const localIPs = ips.filter(
-            (ip) =>
-              ip.startsWith("192.168.") ||
-              ip.startsWith("10.") ||
-              ip.startsWith("172.") ||
-              ip === "127.0.0.1" ||
-              ip === "localhost"
-          );
-
-          if (localIPs.length > 0) {
-            resolve(localIPs[0]);
-          } else {
-            reject(new Error("Tidak dapat mendeteksi IP lokal"));
-          }
+      pc.onicecandidate = (event) => {
+        if (!event || !event.candidate) {
+          reject(new Error("Tidak dapat mendeteksi IP lokal"));
           pc.close();
-        } else {
-          const ip = event.candidate.candidate.split(" ")[4];
-          if (ip && !ips.includes(ip)) {
-            ips.push(ip);
+          return;
+        }
+        const ipMatch = event.candidate.candidate.match(
+          /([0-9]{1,3}(\\.[0-9]{1,3}){3})/
+        );
+        if (ipMatch) {
+          const ip = ipMatch[1];
+          // Filter hanya IP lokal
+          if (
+            ip.startsWith("192.168.") ||
+            ip.startsWith("10.") ||
+            ip.startsWith("172.") ||
+            ip === "127.0.0.1"
+          ) {
+            resolve(ip);
+            pc.close();
           }
         }
       };
-
-      // Timeout setelah 5 detik
       setTimeout(() => {
+        reject(new Error("Timeout deteksi IP lokal"));
         pc.close();
-        reject(new Error("Timeout mendeteksi IP lokal"));
       }, 5000);
-    } catch (error) {
-      reject(error);
+    } catch (err) {
+      reject(err);
     }
   });
 };

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { doAbsensi } from "@/lib/api";
+import { doAbsensi, getLocalIP } from "@/lib/api";
 import { Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -135,6 +135,22 @@ export default function AbsensiDialog({
 
     setIsLoading(tipeAbsen);
     try {
+      // Deteksi IP lokal sebelum absensi
+      let localIP: string | undefined;
+      try {
+        localIP = await getLocalIP();
+      } catch {
+        localIP = undefined;
+      }
+      if (!localIP) {
+        setAbsensiAlert({
+          type: "error",
+          message:
+            "Tidak dapat mendeteksi IP lokal perangkat. Silakan gunakan browser yang mendukung atau hubungi admin.",
+        });
+        setIsLoading(null);
+        return;
+      }
       const response: AbsensiResponseWithMessage = await doAbsensi(
         token,
         tipeAbsen
