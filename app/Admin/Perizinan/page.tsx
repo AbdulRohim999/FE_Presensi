@@ -158,12 +158,7 @@ export default function KelolaPerizian() {
       <Button
         variant="ghost"
         className={`h-auto p-0 hover:bg-transparent ${color}`}
-        onClick={() =>
-          window.open(
-            `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${lampiran}`,
-            "_blank"
-          )
-        }
+        onClick={() => handleOpenLampiran(lampiran)}
       >
         <Badge variant="outline" className={`${color} w-28 truncate`}>
           {icon}
@@ -171,6 +166,30 @@ export default function KelolaPerizian() {
         </Badge>
       </Button>
     );
+  };
+
+  const handleOpenLampiran = async (lampiran: string) => {
+    if (!lampiran || !token) return;
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${lampiran}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        toast.error("Gagal mengunduh lampiran");
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      // window.URL.revokeObjectURL(url); // Optional: jika ingin menghapus setelah digunakan
+    } catch {
+      toast.error("Gagal membuka lampiran");
+    }
   };
 
   return (

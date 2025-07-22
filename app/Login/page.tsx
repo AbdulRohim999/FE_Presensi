@@ -24,6 +24,9 @@ export default function LoginPage() {
     password: "",
   });
 
+  // Tambahkan state untuk showPassword di komponen
+  const [showPassword, setShowPassword] = useState(false);
+
   // Tambahkan handler untuk input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -144,14 +147,25 @@ export default function LoginPage() {
 
             <div className="relative">
               <Input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Kata Sandi"
                 className="pr-10 rounded-full"
                 value={formData.password}
                 onChange={handleInputChange}
               />
-              <Eye className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                tabIndex={-1}
+              >
+                <Eye
+                  className={`h-5 w-5 ${
+                    showPassword ? "text-blue-500" : "text-gray-400"
+                  }`}
+                />
+              </button>
             </div>
 
             <div className="flex items-center justify-between">

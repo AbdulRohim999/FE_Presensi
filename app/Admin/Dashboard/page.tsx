@@ -176,13 +176,38 @@ export default function Dashboard() {
 
     if (isSaturday) {
       // Untuk hari Sabtu, hanya absen pagi dan siang yang dihitung
-      if (absenPagiDone && absenSiangDone && isPagiValid && isSiangValid) {
+      const nowHour = now.getHours();
+      // Jika belum absen pagi atau belum absen siang dan masih sebelum jam 18:00, status pending
+      if ((!absenPagiDone || !absenSiangDone) && nowHour < 18) {
+        return "Pending";
+      }
+      // Validasi waktu absen pagi dan siang sesuai jadwal Sabtu
+      const isPagiValidSabtu = checkTimeValid(
+        record.absenPagi,
+        "07:30",
+        "08:15"
+      );
+      const isSiangValidSabtu = checkTimeValid(
+        record.absenSiang,
+        "13:00",
+        "18:00"
+      );
+      // Jika sudah lewat jam 18:00, status langsung valid/invalid sesuai data
+      if (isPagiValidSabtu && isSiangValidSabtu) {
         return "Valid";
       } else {
         return "Invalid";
       }
     } else {
-      // Untuk hari selain Sabtu, semua absen dihitung
+      // Untuk hari selain Sabtu, status pending jika absen sore belum dilakukan dan masih sebelum jam 21:00
+      const nowHour = now.getHours();
+      if (
+        (!absenPagiDone || !absenSiangDone || !absenSoreDone) &&
+        nowHour < 21
+      ) {
+        return "Pending";
+      }
+      // Setelah jam 21:00, status langsung valid/invalid sesuai data
       if (
         absenPagiDone &&
         absenSiangDone &&

@@ -93,6 +93,7 @@ export default function Dashboard() {
   const [isInCampusNetwork, setIsInCampusNetwork] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const router = useRouter();
+  const currentDay = new Date().getDay();
 
   // Add the requested useEffect for authentication and data fetching
   useEffect(() => {
@@ -378,9 +379,9 @@ export default function Dashboard() {
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogTrigger asChild>
                         <Button
-                          className={`h-15 w-35 text-lg ${
+                          className={`h-15 w-35 text-lg border-2 border-[#8BC34A] ${
                             isInCampusNetwork
-                              ? "bg-green-500 hover:bg-green-600"
+                              ? "bg-[#8BC34A] hover:bg-[#7CB342]"
                               : "bg-gray-400 hover:bg-gray-500"
                           }`}
                           disabled={isLoadingAbsensi}
@@ -399,7 +400,10 @@ export default function Dashboard() {
                   </div>
                   <div className="mt-4 flex items-center text-sm text-muted-foreground">
                     <Briefcase className="mr-1 h-4 w-4 text-green-500" />
-                    Jam kerja: 08:00 AM - 17:00 PM
+                    Jam kerja:{" "}
+                    {currentDay === 6
+                      ? "08:00 AM - 14:00 PM"
+                      : "08:00 AM - 17:00 PM"}
                   </div>
                   <div className="mt-4">
                     <div className="flex justify-between mb-1 text-sm">

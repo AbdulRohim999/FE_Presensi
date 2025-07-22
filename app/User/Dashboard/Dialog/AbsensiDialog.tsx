@@ -49,10 +49,14 @@ export default function AbsensiDialog() {
   };
 
   // Check if each absensi time is active
-  const isMorningActive = isWithinTimeRange(7, 30, 8, 15); // Aktif sampai 10:15
-  const isAfternoonActive = isWithinTimeRange(12, 0, 13, 30); // Aktif sampai 15:30
   const isSaturday = currentTime.getDay() === 6; // 6 adalah hari Sabtu
-  const isEveningActive = isWithinTimeRange(16, 0, 21, 0) && !isSaturday; // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
+  const isMorningActive = isWithinTimeRange(7, 30, 8, 15); // Aktif sampai 10:15
+  // Untuk Sabtu, absen siang 13:00-20:00, selain itu 12:00-13:30
+  const isAfternoonActive = isSaturday
+    ? isWithinTimeRange(13, 0, 15, 59)
+    : isWithinTimeRange(12, 0, 13, 30); // Sabtu: 13:00-19:59, selain itu: 12:00-13:30
+  // Untuk Sabtu, tidak ada absen sore
+  const isEveningActive = !isSaturday && isWithinTimeRange(16, 0, 21, 0); // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
 
   const handleAbsensi = async (tipeAbsen: "pagi" | "siang" | "sore") => {
     if (!token) {
@@ -98,25 +102,6 @@ export default function AbsensiDialog() {
     }
   };
 
-  // Format time for display
-  const formatTimeRange = (
-    startHour: number,
-    startMinute: number,
-    endHour: number,
-    endMinute: number
-  ): string => {
-    const formatTime = (hour: number, minute: number): string => {
-      return `${hour.toString().padStart(2, "0")}:${minute
-        .toString()
-        .padStart(2, "0")}`;
-    };
-
-    return `${formatTime(startHour, startMinute)} - ${formatTime(
-      endHour,
-      endMinute
-    )}`;
-  };
-
   return (
     <>
       <DialogHeader>
@@ -131,43 +116,47 @@ export default function AbsensiDialog() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Button
             onClick={() => handleAbsensi("pagi")}
-            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6"
+            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
             variant={isMorningActive ? "default" : "secondary"}
             disabled={!isMorningActive || isLoading === "pagi"}
           >
             <Sun className="h-6 w-6" />
             <span>Absen Pagi</span>
-            <span className="text-xs">{formatTimeRange(7, 30, 8, 15)}</span>
+            <span className="text-xs">07:30 - 08:15</span>
             {isLoading === "pagi" && (
               <span className="text-xs">Loading...</span>
             )}
           </Button>
           <Button
             onClick={() => handleAbsensi("siang")}
-            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-2 py-8 px-6"
+            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
             variant={isAfternoonActive ? "default" : "secondary"}
             disabled={!isAfternoonActive || isLoading === "siang"}
           >
             <Clock className="h-6 w-6" />
             <span>Absen Siang</span>
-            <span className="text-xs">{formatTimeRange(12, 0, 13, 30)}</span>
+            <span className="text-xs">
+              {isSaturday ? "13:00 - 15:59" : "12:00 - 13:30"}
+            </span>
             {isLoading === "siang" && (
               <span className="text-xs">Loading...</span>
             )}
           </Button>
-          <Button
-            onClick={() => handleAbsensi("sore")}
-            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-2 py-8 px-6"
-            variant={isEveningActive ? "default" : "secondary"}
-            disabled={!isEveningActive || isLoading === "sore"}
-          >
-            <Sunset className="h-6 w-6" />
-            <span>Absen Sore</span>
-            <span className="text-xs">{formatTimeRange(16, 0, 21, 0)}</span>
-            {isLoading === "sore" && (
-              <span className="text-xs">Loading...</span>
-            )}
-          </Button>
+          {!isSaturday && (
+            <Button
+              onClick={() => handleAbsensi("sore")}
+              className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
+              variant={isEveningActive ? "default" : "secondary"}
+              disabled={!isEveningActive || isLoading === "sore"}
+            >
+              <Sunset className="h-6 w-6" />
+              <span>Absen Sore</span>
+              <span className="text-xs">16:00 - 21:00</span>
+              {isLoading === "sore" && (
+                <span className="text-xs">Loading...</span>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </>

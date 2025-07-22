@@ -887,26 +887,20 @@ export default function AttendanceReport() {
                         colSpan={3}
                         className="text-right font-bold pr-4"
                       >
-                        Rata-Rata & Persentase
+                        Persentase Kehadiran
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="font-medium text-green-600">
-                          {summary.avgValid.toFixed(1)}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          ({summary.percentValid.toFixed(1)}%)
+                        <div className="text-xs text-green-600 font-medium">
+                          {summary.percentValid.toFixed(1)}%
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="font-medium text-red-600">
-                          {summary.avgInvalid.toFixed(1)}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          ({summary.percentInvalid.toFixed(1)}%)
+                        <div className="text-xs text-red-600 font-medium">
+                          {summary.percentInvalid.toFixed(1)}%
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        {summary.avgTotal.toFixed(1)}
+                        {/* Kosongkan kolom total */}
                       </TableCell>
                     </TableRow>
                   </tfoot>

@@ -428,11 +428,13 @@ export default function RiwayatAbsensi() {
                             </TableCell>
                             <TableCell
                               className={
-                                !isTimeWithinRange(
-                                  formatWaktu(row.absenSore) || "",
-                                  "16:00",
-                                  "21:00"
-                                )
+                                isSabtu
+                                  ? "text-black font-medium"
+                                  : !isTimeWithinRange(
+                                      formatWaktu(row.absenSore) || "",
+                                      "16:00",
+                                      "21:00"
+                                    )
                                   ? "text-red-600 font-medium"
                                   : ""
                               }

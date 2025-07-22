@@ -414,13 +414,24 @@ export default function UserAttendanceReport({
                               {formatDate(record.tanggalAbsensi)}
                             </TableCell>
                             <TableCell className="text-center">
-                              {formatTime(record.absenPagi)}
+                              {record.absenPagi
+                                ? formatTime(record.absenPagi)
+                                : "-"}
                             </TableCell>
                             <TableCell className="text-center">
-                              {formatTime(record.absenSiang)}
+                              {record.absenSiang
+                                ? formatTime(record.absenSiang)
+                                : "-"}
                             </TableCell>
                             <TableCell className="text-center">
-                              {formatTime(record.absenSore)}
+                              {(() => {
+                                const date = new Date(record.tanggalAbsensi);
+                                const isSaturday = date.getDay() === 6;
+                                if (isSaturday) return "*";
+                                return record.absenSore
+                                  ? formatTime(record.absenSore)
+                                  : "-";
+                              })()}
                             </TableCell>
                             <TableCell className="text-center">
                               <span

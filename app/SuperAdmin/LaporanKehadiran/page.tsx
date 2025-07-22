@@ -351,6 +351,51 @@ export default function AttendanceReport() {
                     </TableRow>
                   )}
                 </TableBody>
+                {filteredData.length > 0 && (
+                  <tfoot>
+                    <TableRow className="bg-slate-100 dark:bg-slate-800 font-semibold">
+                      <TableCell
+                        colSpan={3}
+                        className="text-right font-bold pr-4"
+                      >
+                        Persentase Kehadiran
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-xs text-green-600 font-medium">
+                          {(
+                            (filteredData.reduce(
+                              (acc, user) => acc + user.validCount,
+                              0
+                            ) /
+                              filteredData.reduce(
+                                (acc, user) => acc + user.totalCount,
+                                0
+                              ) || 0) * 100
+                          ).toFixed(1)}
+                          %
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-xs text-red-600 font-medium">
+                          {(
+                            (filteredData.reduce(
+                              (acc, user) => acc + user.invalidCount,
+                              0
+                            ) /
+                              filteredData.reduce(
+                                (acc, user) => acc + user.totalCount,
+                                0
+                              ) || 0) * 100
+                          ).toFixed(1)}
+                          %
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {/* Kosongkan kolom total */}
+                      </TableCell>
+                    </TableRow>
+                  </tfoot>
+                )}
               </Table>
             </div>
           </div>
