@@ -187,7 +187,9 @@ export default function RiwayatAbsensi() {
   const { token } = useAuth();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth()
+  );
   const [riwayatData, setRiwayatData] = useState<RiwayatAbsensi[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -287,7 +289,9 @@ export default function RiwayatAbsensi() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
                         <DropdownMenuItem
-                          onClick={() => setSelectedMonth(null)}
+                          onClick={() =>
+                            setSelectedMonth(new Date().getMonth())
+                          }
                         >
                           Semua Bulan
                         </DropdownMenuItem>

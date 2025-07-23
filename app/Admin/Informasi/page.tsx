@@ -47,7 +47,9 @@ export default function Informasi() {
   const [editInformasi, setEditInformasi] = useState<InformasiAdmin | null>(
     null
   );
-  const [bulanFilter, setBulanFilter] = useState<string>("all");
+  const [bulanFilter, setBulanFilter] = useState<string>(
+    (new Date().getMonth() + 1).toString()
+  );
   const { token } = useAuth();
 
   const fetchInformasi = useCallback(async () => {
