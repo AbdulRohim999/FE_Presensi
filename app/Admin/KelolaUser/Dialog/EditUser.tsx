@@ -291,7 +291,6 @@ export function EditUserDialog({
               variant="outline"
               onClick={() => {
                 onOpenChange(false);
-                window.location.reload();
               }}
               disabled={isLoading}
             >
@@ -302,7 +301,7 @@ export function EditUserDialog({
               disabled={isLoading}
               onClick={async (e) => {
                 await handleSubmit(e);
-                window.location.reload();
+                onOpenChange(false);
               }}
             >
               {isLoading ? "Menyimpan..." : "Simpan Perubahan"}

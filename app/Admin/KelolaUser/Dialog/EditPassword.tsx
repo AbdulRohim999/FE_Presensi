@@ -203,7 +203,8 @@ export function EditPasswordDialog({
             variant="outline"
             onClick={() => {
               onOpenChange(false);
-              window.location.reload();
+              setNewPassword("");
+              setConfirmPassword("");
             }}
             type="button"
           >
@@ -212,7 +213,7 @@ export function EditPasswordDialog({
           <Button
             onClick={async () => {
               await handleSubmit();
-              window.location.reload();
+              onOpenChange(false);
             }}
             type="button"
             disabled={loading}

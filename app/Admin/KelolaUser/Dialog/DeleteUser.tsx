@@ -44,8 +44,8 @@ export function DeleteUserDialog({
     try {
       await deleteUser(token, userId);
       toast.success("User berhasil dihapus");
-      onSuccess();
-      window.location.reload();
+      onSuccess(); 
+      onOpenChange(false);
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error("Gagal menghapus user");
@@ -68,7 +68,7 @@ export function DeleteUserDialog({
           <AlertDialogCancel
             disabled={isLoading}
             onClick={() => {
-              window.location.reload();
+              onOpenChange(false);
             }}
           >
             Batal
