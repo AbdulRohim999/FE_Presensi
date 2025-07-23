@@ -50,19 +50,6 @@ interface FormData {
   bidangKerja: string;
 }
 
-// Then initialize with values from admin
-const [formData, setFormData] = useState<FormData>({
-  firstname: admin.firstname,
-  lastname: admin.lastname,
-  email: admin.email,
-  status: admin.status || "Aktif",
-  alamat: admin.alamat || "",
-  phoneNumber: admin.phoneNumber || "",
-  nip: admin.nip || "",
-  tipeUser: admin.tipeUser || "",
-  bidangKerja: admin.bidangKerja || ""
-});
-
 export function EditAdminDialog({ admin, onSuccess }: EditAdminDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +61,9 @@ export function EditAdminDialog({ admin, onSuccess }: EditAdminDialogProps) {
     status: admin.status || "Aktif",
     alamat: admin.alamat || "",
     phoneNumber: admin.phoneNumber || "",
+    nip: admin.nip || "",
+    tipeUser: admin.tipeUser || "",
+    bidangKerja: admin.bidangKerja || ""
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
