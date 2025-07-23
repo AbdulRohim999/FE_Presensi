@@ -45,7 +45,23 @@ interface FormData {
   status: string;
   alamat: string;
   phoneNumber: string;
+  nip: string;
+  tipeUser: string;
+  bidangKerja: string;
 }
+
+// Then initialize with values from admin
+const [formData, setFormData] = useState<FormData>({
+  firstname: admin.firstname,
+  lastname: admin.lastname,
+  email: admin.email,
+  status: admin.status || "Aktif",
+  alamat: admin.alamat || "",
+  phoneNumber: admin.phoneNumber || "",
+  nip: admin.nip || "",
+  tipeUser: admin.tipeUser || "",
+  bidangKerja: admin.bidangKerja || ""
+});
 
 export function EditAdminDialog({ admin, onSuccess }: EditAdminDialogProps) {
   const [open, setOpen] = useState(false);
