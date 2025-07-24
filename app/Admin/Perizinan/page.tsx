@@ -168,34 +168,16 @@ export default function KelolaPerizian() {
     );
   };
 
-  const handleOpenLampiran = async (lampiran: string) => {
-    if (!lampiran || !token) return;
-    try {
-      // Hapus prefix domain jika ada pada lampiran
-      let cleanLampiran = lampiran;
-      const prefix = "https://epresensi-sttp.up.railway.app/uploads/";
-      if (lampiran.startsWith(prefix)) {
-        cleanLampiran = lampiran.replace(prefix, "");
-      }
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${cleanLampiran}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        toast.error("Gagal mengunduh lampiran");
-        return;
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      // Tidak perlu revokeObjectURL langsung, biarkan user download manual
-    } catch {
-      toast.error("Gagal membuka lampiran");
+  const handleOpenLampiran = (lampiran: string) => {
+    if (!lampiran) return;
+    // Jika lampiran sudah URL lengkap (http/https), langsung buka di tab baru
+    if (lampiran.startsWith("http://") || lampiran.startsWith("https://")) {
+      window.open(lampiran, "_blank");
+      return;
     }
+    // Jika lampiran hanya nama file, gunakan endpoint backend
+    const url = `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${lampiran}`;
+    window.open(url, "_blank");
   };
 
   return (
