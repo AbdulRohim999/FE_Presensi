@@ -186,7 +186,7 @@ export default function KelolaPerizian() {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
-      // window.URL.revokeObjectURL(url); // Optional: jika ingin menghapus setelah digunakan
+      // Tidak perlu revokeObjectURL langsung, biarkan user download manual
     } catch {
       toast.error("Gagal membuka lampiran");
     }
