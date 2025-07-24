@@ -65,14 +65,19 @@ export function EditPasswordDialog({
   const handleSubmit = async () => {
     if (!newPassword) {
       setError("Password baru tidak boleh kosong.");
+      toast.error("Password baru tidak boleh kosong.");
       return;
     }
     if (!validatePassword(newPassword)) {
       setError("Password tidak memenuhi syarat.");
+      toast.error(
+        "Password tidak sesuai syarat, tolong diperbaharui passwordnya"
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
       setError("Konfirmasi password tidak sama.");
+      toast.error("Konfirmasi password tidak sama.");
       return;
     }
     setError("");

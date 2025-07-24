@@ -5,6 +5,12 @@ import { Sidebar } from "@/app/Admin/components/Sidebar";
 import { DatePickerWithRange } from "@/components/date-range-picker";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,10 +27,15 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
 import { getKehadiranUser } from "@/lib/api";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { ArrowLeft, Download, FilterX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface KehadiranUser {
   idUser: number;
@@ -283,6 +294,137 @@ export default function UserAttendanceReport({
     setDate(undefined);
   };
 
+  const handleDownloadPDF = () => {
+    try {
+      if (!userInfo) return toast.error("Data user tidak ditemukan");
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("LAPORAN KEHADIRAN USER", 105, 20, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(`Nama: ${userInfo.namaUser}`, 20, 35);
+      doc.text(`Bidang Kerja: ${userInfo.bidangKerja}`, 20, 43);
+      // Table
+      const tableData = filteredAttendance.map((item, idx) => [
+        idx + 1,
+        formatDate(item.tanggalAbsensi),
+        item.absenPagi ? formatTime(item.absenPagi) : "-",
+        item.absenSiang ? formatTime(item.absenSiang) : "-",
+        (() => {
+          const date = new Date(item.tanggalAbsensi);
+          const isSaturday = date.getDay() === 6;
+          if (isSaturday) return "*";
+          return item.absenSore ? formatTime(item.absenSore) : "-";
+        })(),
+        item.status,
+      ]);
+      autoTable(doc, {
+        head: [
+          [
+            "No",
+            "Tanggal",
+            "Absen Pagi",
+            "Absen Siang",
+            "Absen Sore",
+            "Status",
+          ],
+        ],
+        body: tableData,
+        startY: 50,
+      });
+      doc.save(`Laporan_User_${userInfo.namaUser}.pdf`);
+      toast.success("Laporan PDF berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh PDF");
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    try {
+      if (!userInfo) return toast.error("Data user tidak ditemukan");
+      const excelData = filteredAttendance.map((item, idx) => ({
+        No: idx + 1,
+        Tanggal: formatDate(item.tanggalAbsensi),
+        "Absen Pagi": item.absenPagi ? formatTime(item.absenPagi) : "-",
+        "Absen Siang": item.absenSiang ? formatTime(item.absenSiang) : "-",
+        "Absen Sore": (() => {
+          const date = new Date(item.tanggalAbsensi);
+          const isSaturday = date.getDay() === 6;
+          if (isSaturday) return "*";
+          return item.absenSore ? formatTime(item.absenSore) : "-";
+        })(),
+        Status: item.status,
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      XLSX.utils.book_append_sheet(wb, ws, "Laporan User");
+      XLSX.writeFile(wb, `Laporan_User_${userInfo.namaUser}.xlsx`);
+      toast.success("Laporan Excel berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh Excel");
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    try {
+      if (!userInfo) return toast.error("Data user tidak ditemukan");
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "LAPORAN KEHADIRAN USER",
+                    bold: true,
+                    size: 32,
+                  }),
+                ],
+              }),
+              new Paragraph({ text: `Nama: ${userInfo.namaUser}` }),
+              new Paragraph({ text: `Bidang Kerja: ${userInfo.bidangKerja}` }),
+              new Paragraph({ text: "" }),
+              ...filteredAttendance.map(
+                (item, idx) =>
+                  new Paragraph({
+                    children: [
+                      new TextRun(
+                        `${idx + 1}. ${formatDate(
+                          item.tanggalAbsensi
+                        )} | Pagi: ${
+                          item.absenPagi ? formatTime(item.absenPagi) : "-"
+                        } | Siang: ${
+                          item.absenSiang ? formatTime(item.absenSiang) : "-"
+                        } | Sore: ${(() => {
+                          const date = new Date(item.tanggalAbsensi);
+                          const isSaturday = date.getDay() === 6;
+                          if (isSaturday) return "*";
+                          return item.absenSore
+                            ? formatTime(item.absenSore)
+                            : "-";
+                        })()} | Status: ${item.status}`
+                      ),
+                    ],
+                  })
+              ),
+            ],
+          },
+        ],
+      });
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Laporan_User_${userInfo.namaUser}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Laporan Word berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh Word");
+    }
+  };
+
   return (
     <div className="flex min-h-screen" style={{ background: "#F1F8E9" }}>
       <div className="fixed h-full">
@@ -311,9 +453,27 @@ export default function UserAttendanceReport({
                   Departemen {userInfo?.bidangKerja || "Loading..."}
                 </p>
               </div>
-              <Button>
-                <Download className="mr-2 h-4 w-4" /> Unduh Laporan
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <Download className="mr-2 h-4 w-4" /> Unduh Laporan
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDownloadPDF}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Unduh sebagai PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadExcel}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Unduh sebagai Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadWord}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Unduh sebagai Word
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             {error ? (
               <div className="text-center py-8">

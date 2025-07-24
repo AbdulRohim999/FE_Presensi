@@ -7,6 +7,13 @@ import { EditInformasiDialog } from "@/app/Admin/Informasi/Dialog/EditInformasiD
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -51,6 +58,8 @@ export default function Informasi() {
     (new Date().getMonth() + 1).toString()
   );
   const { token } = useAuth();
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const fetchInformasi = useCallback(async () => {
     if (!token) {
@@ -278,7 +287,10 @@ export default function Informasi() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(info.informasiId)}
+                              onClick={() => {
+                                setSelectedId(info.informasiId);
+                                setOpenConfirm(true);
+                              }}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -341,6 +353,33 @@ export default function Informasi() {
         informasi={editInformasi}
         onSubmit={handleEditSubmit}
       />
+      {openConfirm && (
+        <Dialog open={openConfirm} onOpenChange={setOpenConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Konfirmasi Hapus Informasi</DialogTitle>
+              <DialogDescription>
+                Apakah Anda yakin ingin menghapus informasi ini? Tindakan ini
+                tidak dapat dibatalkan.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setOpenConfirm(false)}>
+                Tidak
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (selectedId) handleDelete(selectedId);
+                  setOpenConfirm(false);
+                }}
+              >
+                Ya, Hapus
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

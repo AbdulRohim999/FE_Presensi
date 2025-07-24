@@ -4,6 +4,12 @@ import { Navbar } from "@/app/SuperAdmin/components/Navbar";
 import { Sidebar } from "@/app/SuperAdmin/components/Sidebar";
 import { DatePickerWithRange } from "@/components/date-range-picker";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,11 +26,15 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
 import { getJumlahStatusKehadiranPeriode } from "@/lib/api";
-import { Search, X } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface User {
   idUser: number;
@@ -95,6 +105,31 @@ export default function AttendanceReport() {
         {filterDescription}
       </>
     );
+  };
+
+  // Fungsi untuk mendapatkan deskripsi dalam bentuk string (untuk ekspor)
+  const getDescriptionText = () => {
+    const description = "Laporan kehadiran dosen dan karyawan STT Payakumbuh";
+    let filterDescription = "";
+
+    if (date?.from) {
+      const formatDate = (date: Date) => {
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = getMonthName((date.getMonth() + 1).toString());
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const startDate = formatDate(date.from);
+      const endDate = date.to ? formatDate(date.to) : startDate;
+      filterDescription = `pada ${startDate} hingga ${endDate}`;
+    } else if (selectedMonth !== "all") {
+      filterDescription = `Bulan ${getMonthName(selectedMonth)}`;
+    }
+
+    return filterDescription
+      ? `${description} ${filterDescription}`
+      : description;
   };
 
   // Fungsi untuk mendapatkan tanggal awal dan akhir bulan
@@ -171,6 +206,127 @@ export default function AttendanceReport() {
 
   const handleUserClick = (userId: number) => {
     router.push(`/SuperAdmin/LaporanKehadiran/LaporanUser/${userId}`);
+  };
+
+  const handleDownloadPDF = () => {
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("LAPORAN KEHADIRAN", 105, 20, { align: "center" });
+      doc.setFontSize(12);
+      doc.text("STT Payakumbuh", 105, 30, { align: "center" });
+      doc.text(getDescriptionText(), 105, 40, { align: "center" });
+      // Table
+      const tableData = filteredData.map((record, idx) => [
+        idx + 1,
+        record.namaUser,
+        record.tipeUser || "-",
+        record.bidangKerja || "-",
+        record.validCount.toString(),
+        record.invalidCount.toString(),
+        record.totalCount.toString(),
+      ]);
+      autoTable(doc, {
+        head: [
+          [
+            "No",
+            "Nama",
+            "Tipe User",
+            "Bidang Kerja",
+            "Valid",
+            "Invalid",
+            "Total",
+          ],
+        ],
+        body: tableData,
+        startY: 50,
+      });
+      doc.save(
+        `Laporan_Kehadiran_${new Date().toISOString().split("T")[0]}.pdf`
+      );
+      toast.success("Laporan PDF berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh PDF");
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    try {
+      const excelData = filteredData.map((record, idx) => ({
+        No: idx + 1,
+        Nama: record.namaUser,
+        "Tipe User": record.tipeUser || "-",
+        "Bidang Kerja": record.bidangKerja || "-",
+        Valid: record.validCount,
+        Invalid: record.invalidCount,
+        Total: record.totalCount,
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      XLSX.utils.book_append_sheet(wb, ws, "Laporan Kehadiran");
+      XLSX.writeFile(
+        wb,
+        `Laporan_Kehadiran_${new Date().toISOString().split("T")[0]}.xlsx`
+      );
+      toast.success("Laporan Excel berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh Excel");
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    try {
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "LAPORAN KEHADIRAN",
+                    bold: true,
+                    size: 32,
+                  }),
+                ],
+              }),
+              new Paragraph({ text: "STT Payakumbuh" }),
+              new Paragraph({ text: getDescriptionText() }),
+              new Paragraph({ text: "" }),
+              ...filteredData.map(
+                (record, idx) =>
+                  new Paragraph({
+                    children: [
+                      new TextRun(
+                        `${idx + 1}. ${record.namaUser} | Tipe: ${
+                          record.tipeUser || "-"
+                        } | Bidang: ${record.bidangKerja || "-"} | Valid: ${
+                          record.validCount
+                        } | Invalid: ${record.invalidCount} | Total: ${
+                          record.totalCount
+                        }`
+                      ),
+                    ],
+                  })
+              ),
+            ],
+          },
+        ],
+      });
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Laporan_Kehadiran_${
+        new Date().toISOString().split("T")[0]
+      }.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Laporan Word berhasil diunduh");
+    } catch {
+      toast.error("Gagal mengunduh Word");
+    }
   };
 
   return (
@@ -277,6 +433,28 @@ export default function AttendanceReport() {
                       </button>
                     )}
                   </div>
+                  {/* Button Unduh Laporan */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="inline-flex items-center px-4 py-2 bg-black text-white rounded-md hover:bg-black/90">
+                        <Download className="h-4 w-4 mr-2" /> Unduh Laporan
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleDownloadPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadExcel}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWord}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Word
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
