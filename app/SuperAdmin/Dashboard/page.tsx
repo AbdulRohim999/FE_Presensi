@@ -107,6 +107,16 @@ export default function Dashboard() {
         fetchKehadiranHariIni();
         fetchTotalUsers();
       }
+      // Cek login success
+      if (
+        typeof window !== "undefined" &&
+        localStorage.getItem("loginSuccess")
+      ) {
+        toast.success(
+          "Login berhasil, selamat datang di Dashboard Super Admin!"
+        );
+        localStorage.removeItem("loginSuccess");
+      }
     }, 500); // Tunggu 500ms
 
     return () => clearTimeout(timer);

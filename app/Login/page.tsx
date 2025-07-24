@@ -53,6 +53,11 @@ export default function LoginPage() {
         role: response.role,
       });
 
+      // Set flag login sukses untuk dashboard
+      if (typeof window !== "undefined") {
+        localStorage.setItem("loginSuccess", "true");
+      }
+
       // Arahkan ke dashboard sesuai role
       switch (response.role) {
         case "super_admin":
@@ -74,10 +79,7 @@ export default function LoginPage() {
           return;
       }
 
-      toast({
-        title: "Login Berhasil",
-        description: `Selamat datang, ${response.firstname} ${response.lastname}!`,
-      });
+      // Jangan tampilkan toast di sini, biar di dashboard saja
     } catch (error) {
       console.error("Login error:", error);
       toast({

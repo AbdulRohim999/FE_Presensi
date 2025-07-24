@@ -103,6 +103,11 @@ export default function Dashboard() {
       fetchAbsensiHariIni();
       fetchLaporanMingguan();
     }
+    // Cek login success
+    if (typeof window !== "undefined" && localStorage.getItem("loginSuccess")) {
+      toast.success("Login berhasil, selamat datang di Dashboard User!");
+      localStorage.removeItem("loginSuccess");
+    }
   }, [token, isLoading, router]);
 
   // Update waktu setiap detik

@@ -44,6 +44,11 @@ export default function Dashboard() {
       fetchKehadiranHariIni();
       fetchTotalUsers();
     }
+    // Cek login success
+    if (typeof window !== "undefined" && localStorage.getItem("loginSuccess")) {
+      toast.success("Login berhasil, selamat datang di Dashboard Admin!");
+      localStorage.removeItem("loginSuccess");
+    }
   }, [token, isLoading, router]);
 
   // Ubah semua referensi setIsLoading menjadi setIsLoadingData
