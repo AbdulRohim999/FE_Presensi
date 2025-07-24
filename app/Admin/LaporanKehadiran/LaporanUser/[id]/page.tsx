@@ -51,25 +51,15 @@ interface KehadiranUser {
 // Helper functions (Dipindahkan ke sini agar dapat diakses oleh checkAndUpdateStatus)
 // Format time (jam:menit)
 const formatTime = (timeString: string | null) => {
-  if (!timeString) return null;
+  if (!timeString) return "-";
   try {
-    if (timeString.includes(":")) {
-      const [hours, minutes] = timeString
-        .split(":")
-        .map((part) => part.padStart(2, "0"));
-      return `${hours}:${minutes}`;
-    }
     const date = new Date(timeString);
-    if (isNaN(date.getTime())) {
-      console.error("Invalid date format in formatTime:", timeString);
-      return null;
-    }
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return null;
+    return `${date.getHours().toString().padStart(2, "0")}.${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}.${date.getSeconds().toString().padStart(2, "0")}`;
+  } catch {
+    return "-";
   }
 };
 

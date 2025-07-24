@@ -45,13 +45,11 @@ interface RiwayatAbsensi {
 const formatWaktu = (timeString: string | null) => {
   if (!timeString) return "-";
   try {
-    // Parse waktu dari string
     const date = new Date(timeString);
-    // Format ke format yang diinginkan (contoh: 12.10)
     return `${date.getHours().toString().padStart(2, "0")}.${date
       .getMinutes()
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, "0")}.${date.getSeconds().toString().padStart(2, "0")}`;
   } catch (error) {
     console.error("Error formatting time:", error);
     return "-";

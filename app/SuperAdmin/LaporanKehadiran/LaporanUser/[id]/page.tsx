@@ -238,8 +238,15 @@ export default function UserAttendanceReport({
   // Format time (jam:menit)
   const formatTime = (timeString: string | null) => {
     if (!timeString) return "-";
-    // Ambil jam dan menit saja
-    return timeString.substring(0, 5);
+    try {
+      const date = new Date(timeString);
+      return `${date.getHours().toString().padStart(2, "0")}.${date
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}.${date.getSeconds().toString().padStart(2, "0")}`;
+    } catch {
+      return "-";
+    }
   };
 
   const handleDownloadPDF = () => {

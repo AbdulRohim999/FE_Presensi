@@ -96,29 +96,15 @@ export default function Dashboard() {
   const formatTime = (timeString: string | null) => {
     if (!timeString) return null;
     try {
-      // Cek apakah string waktu sudah dalam format HH:mm:ss
-      if (timeString.includes(":")) {
-        // Ambil hanya jam dan menit
-        const [hours, minutes] = timeString
-          .split(":")
-          .map((part) => part.padStart(2, "0"));
-        return `${hours}:${minutes}`;
-      }
-
-      // Jika format ISO date
       const date = new Date(timeString);
       if (isNaN(date.getTime())) {
         console.error("Invalid date format:", timeString);
         return null;
       }
-
-      // Konversi ke waktu lokal Indonesia
-      const localDate = new Date(date.getTime() + 7 * 60 * 60 * 1000); // UTC+7
-
-      // Format waktu ke format 24 jam
-      const hours = localDate.getHours().toString().padStart(2, "0");
-      const minutes = localDate.getMinutes().toString().padStart(2, "0");
-      return `${hours}:${minutes}`;
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      return `${hours}.${minutes}.${seconds}`;
     } catch (error) {
       console.error("Error formatting time:", error);
       return null;
