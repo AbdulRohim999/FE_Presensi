@@ -350,10 +350,9 @@ export default function AttendanceReport() {
                 </p>
               </div>
 
-              {/* Filter Bar */}
-              <div className="space-y-4">
-                {/* Filter Bar Atas */}
-                <div className="flex items-center gap-2">
+              {/* Filter Bar Baru: semua filter kanan dan button hijau */}
+              <div className="flex flex-col gap-2 w-full max-w-3xl justify-end items-end">
+                <div className="flex gap-2 w-full justify-end">
                   {/* Search Input */}
                   <div className="relative">
                     <input
@@ -367,7 +366,6 @@ export default function AttendanceReport() {
                       <Search className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
-
                   {/* Tipe User Filter */}
                   <Select
                     value={tipeUserFilter}
@@ -382,10 +380,33 @@ export default function AttendanceReport() {
                       <SelectItem value="Karyawan">Karyawan</SelectItem>
                     </SelectContent>
                   </Select>
+                  {/* Button Unduh Laporan */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="inline-flex items-center px-4 py-2 rounded-md text-white"
+                        style={{ backgroundColor: "#8BC34A" }}
+                      >
+                        <Download className="h-4 w-4 mr-2" /> Unduh Laporan
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleDownloadPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadExcel}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWord}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Word
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-
-                {/* Filter Bar Bawah */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full justify-end">
                   {/* Filter Bulan */}
                   <Select
                     value={selectedMonth}
@@ -413,7 +434,6 @@ export default function AttendanceReport() {
                       <SelectItem value="12">Desember</SelectItem>
                     </SelectContent>
                   </Select>
-
                   {/* Date Range Picker */}
                   <div className="flex items-center gap-2">
                     <DatePickerWithRange
@@ -433,28 +453,6 @@ export default function AttendanceReport() {
                       </button>
                     )}
                   </div>
-                  {/* Button Unduh Laporan */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="inline-flex items-center px-4 py-2 bg-black text-white rounded-md hover:bg-black/90">
-                        <Download className="h-4 w-4 mr-2" /> Unduh Laporan
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleDownloadPDF}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai PDF
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDownloadExcel}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai Excel
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDownloadWord}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai Word
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             </div>

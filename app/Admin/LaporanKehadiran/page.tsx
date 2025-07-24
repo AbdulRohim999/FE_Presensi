@@ -783,9 +783,14 @@ export default function AttendanceReport() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant="default"
-                        size="default"
-                        className="flex items-center gap-2 h-10 px-4 bg-black hover:bg-black/90 text-white"
+                        className="flex items-center gap-2 h-10 px-4 text-white"
+                        style={{ backgroundColor: "#8BC34A" }}
+                        onMouseOver={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#689F38")
+                        }
+                        onMouseOut={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#8BC34A")
+                        }
                       >
                         <FileDown className="h-4 w-4" />
                         Unduh Laporan
