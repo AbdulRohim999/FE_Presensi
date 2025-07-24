@@ -51,10 +51,10 @@ export default function AbsensiDialog() {
   // Check if each absensi time is active
   const isSaturday = currentTime.getDay() === 6; // 6 adalah hari Sabtu
   const isMorningActive = isWithinTimeRange(7, 30, 8, 15); // Aktif sampai 10:15
-  // Untuk Sabtu, absen siang 13:00-15:59, selain itu 12:00-15:30
+  // Untuk Sabtu, absen siang 13:00-15:59, selain itu 12:00-13:30
   const isAfternoonActive = isSaturday
     ? isWithinTimeRange(13, 0, 15, 59)
-    : isWithinTimeRange(12, 0, 15, 30); // Senin-Jumat: 12:00-13:30
+    : isWithinTimeRange(12, 0, 13, 30); // Senin-Jumat: 12:00-13:30
   // Untuk Sabtu, tidak ada absen sore
   const isEveningActive = !isSaturday && isWithinTimeRange(16, 0, 21, 0); // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
 
