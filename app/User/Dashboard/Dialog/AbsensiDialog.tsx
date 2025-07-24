@@ -39,8 +39,8 @@ export default function AbsensiDialog() {
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
 
-    // Tambah 3 jam 20 menit (200 menit) ke waktu akhir
-    const extendedEndTotalMinutes = endTotalMinutes + 180;
+    // Tambah 2 jam (120 menit) ke waktu akhir
+    const extendedEndTotalMinutes = endTotalMinutes + 120;
 
     return (
       currentTotalMinutes >= startTotalMinutes &&
@@ -54,7 +54,7 @@ export default function AbsensiDialog() {
   // Untuk Sabtu, absen siang 13:00-15:59, selain itu 12:00-15:30
   const isAfternoonActive = isSaturday
     ? isWithinTimeRange(13, 0, 15, 59)
-    : isWithinTimeRange(12, 0, 15, 30); // Senin-Jumat: 12:00-15:30
+    : isWithinTimeRange(12, 0, 15, 30); // Senin-Jumat: 12:00-13:30
   // Untuk Sabtu, tidak ada absen sore
   const isEveningActive = !isSaturday && isWithinTimeRange(16, 0, 21, 0); // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
 
@@ -136,7 +136,7 @@ export default function AbsensiDialog() {
             <Clock className="h-6 w-6" />
             <span>Absen Siang</span>
             <span className="text-xs">
-              {isSaturday ? "13:00 - 15:59" : "12:00 - 15:30"}
+              {isSaturday ? "13:00 - 15:59" : "12:00 - 13:30"}
             </span>
             {isLoading === "siang" && (
               <span className="text-xs">Loading...</span>
