@@ -54,10 +54,13 @@ const formatTime = (timeString: string | null) => {
   if (!timeString) return null;
   try {
     if (timeString.includes(":")) {
-      const [hours, minutes] = timeString
-        .split(":")
-        .map((part) => part.padStart(2, "0"));
-      return `${hours}:${minutes}`;
+      const parts = timeString.split(":").map((part) => part.padStart(2, "0"));
+      // Jika sudah ada detik
+      if (parts.length === 3) {
+        return `${parts[0]}:${parts[1]}:${parts[2]}`;
+      } else if (parts.length === 2) {
+        return `${parts[0]}:${parts[1]}:00`;
+      }
     }
     const date = new Date(timeString);
     if (isNaN(date.getTime())) {
@@ -66,7 +69,8 @@ const formatTime = (timeString: string | null) => {
     }
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
   } catch (error) {
     console.error("Error formatting time:", error);
     return null;

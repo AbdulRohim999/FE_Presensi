@@ -237,9 +237,32 @@ export default function UserAttendanceReport({
 
   // Format time (jam:menit)
   const formatTime = (timeString: string | null) => {
-    if (!timeString) return "-";
-    // Ambil jam dan menit saja
-    return timeString.substring(0, 5);
+    if (!timeString) return null;
+    try {
+      if (timeString.includes(":")) {
+        const parts = timeString
+          .split(":")
+          .map((part) => part.padStart(2, "0"));
+        // Jika sudah ada detik
+        if (parts.length === 3) {
+          return `${parts[0]}:${parts[1]}:${parts[2]}`;
+        } else if (parts.length === 2) {
+          return `${parts[0]}:${parts[1]}:00`;
+        }
+      }
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) {
+        console.error("Invalid date format in formatTime:", timeString);
+        return null;
+      }
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      return `${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return null;
+    }
   };
 
   const handleDownloadPDF = () => {
