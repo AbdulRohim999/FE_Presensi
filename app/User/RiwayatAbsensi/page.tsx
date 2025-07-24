@@ -45,13 +45,11 @@ interface RiwayatAbsensi {
 const formatWaktu = (timeString: string | null) => {
   if (!timeString) return "-";
   try {
-    // Parse waktu dari string
     const date = new Date(timeString);
-    // Format ke format yang diinginkan (contoh: 12.10)
-    return `${date.getHours().toString().padStart(2, "0")}.${date
+    return `${date.getHours().toString().padStart(2, "0")}:${date
       .getMinutes()
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
   } catch (error) {
     console.error("Error formatting time:", error);
     return "-";
@@ -134,13 +132,13 @@ const calculateStatus = (record: RiwayatAbsensi) => {
     // Cek apakah absen pagi dan siang valid
     const isPagiValid = isTimeWithinRange(
       formatWaktu(record.absenPagi) || "",
-      "07:30",
-      "08:15"
+      "07:30:00",
+      "08:15:00"
     );
     const isSiangValid = isTimeWithinRange(
       formatWaktu(record.absenSiang) || "",
-      "12:00",
-      "13:30"
+      "12:00:00",
+      "13:30:00"
     );
 
     // Jika kedua absen valid dan ada, status Valid
@@ -161,18 +159,18 @@ const calculateStatus = (record: RiwayatAbsensi) => {
   // Cek apakah semua absen dalam rentang waktu yang valid
   const isPagiValid = isTimeWithinRange(
     formatWaktu(record.absenPagi) || "",
-    "07:30",
-    "08:15"
+    "07:30:00",
+    "08:15:00"
   );
   const isSiangValid = isTimeWithinRange(
     formatWaktu(record.absenSiang) || "",
-    "12:00",
-    "13:30"
+    "12:00:00",
+    "13:30:00"
   );
   const isSoreValid = isTimeWithinRange(
     formatWaktu(record.absenSore) || "",
-    "16:00",
-    "21:00"
+    "16:00:00",
+    "21:00:00"
   );
 
   // Jika semua absen valid, status Valid
@@ -408,8 +406,8 @@ export default function RiwayatAbsensi() {
                               className={
                                 !isTimeWithinRange(
                                   formatWaktu(row.absenPagi) || "",
-                                  "07:30",
-                                  "08:15"
+                                  "07:30:00",
+                                  "08:15:00"
                                 )
                                   ? "text-red-600 font-medium"
                                   : ""
@@ -421,8 +419,8 @@ export default function RiwayatAbsensi() {
                               className={
                                 !isTimeWithinRange(
                                   formatWaktu(row.absenSiang) || "",
-                                  "12:00",
-                                  "13:30"
+                                  "12:00:00",
+                                  "13:30:00"
                                 )
                                   ? "text-red-600 font-medium"
                                   : ""
@@ -436,8 +434,8 @@ export default function RiwayatAbsensi() {
                                   ? "text-black font-medium"
                                   : !isTimeWithinRange(
                                       formatWaktu(row.absenSore) || "",
-                                      "16:00",
-                                      "21:00"
+                                      "16:00:00",
+                                      "21:00:00"
                                     )
                                   ? "text-red-600 font-medium"
                                   : ""
