@@ -171,8 +171,14 @@ export default function KelolaPerizian() {
   const handleOpenLampiran = async (lampiran: string) => {
     if (!lampiran || !token) return;
     try {
+      // Hapus prefix domain jika ada pada lampiran
+      let cleanLampiran = lampiran;
+      const prefix = "https://epresensi-sttp.up.railway.app/uploads/";
+      if (lampiran.startsWith(prefix)) {
+        cleanLampiran = lampiran.replace(prefix, "");
+      }
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${lampiran}`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${cleanLampiran}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
