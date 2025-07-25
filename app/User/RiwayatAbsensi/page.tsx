@@ -43,8 +43,19 @@ interface RiwayatAbsensi {
 
 // Format waktu untuk display
 const formatWaktu = (timeString: string | null) => {
-  const t = normalizeTime(timeString);
-  return t ? t : "-";
+  if (!timeString) return "-";
+  try {
+    // Parse waktu dari string
+    const date = new Date(timeString);
+    // Format ke format yang diinginkan (contoh: 12.10)
+    return `${date.getHours().toString().padStart(2, "0")}.${date
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "-";
+  }
 };
 
 // Helper function untuk validasi waktu
@@ -70,16 +81,6 @@ const isTimeWithinRange = (
     console.error("Error validating time range:", error);
     return false;
   }
-};
-
-// Fungsi untuk normalisasi waktu ke format HH:MM:SS
-const normalizeTime = (waktu: string | null) => {
-  if (!waktu) return null;
-  let mainTime = waktu.replace(/\./g, ":");
-  mainTime = mainTime.split(":").slice(0, 3).join(":");
-  const parts = mainTime.split(":").map((p) => p.padStart(2, "0"));
-  while (parts.length < 3) parts.push("00");
-  return parts.slice(0, 3).join(":");
 };
 
 // Daftar bulan untuk dropdown
