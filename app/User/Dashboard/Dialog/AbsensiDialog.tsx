@@ -39,8 +39,8 @@ export default function AbsensiDialog() {
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
 
-    // Tambah 2 jam (120 menit) ke waktu akhir
-    const extendedEndTotalMinutes = endTotalMinutes + 120;
+    // Tambah 3 jam 20 menit (200 menit) ke waktu akhir
+    const extendedEndTotalMinutes = endTotalMinutes + 200;
 
     return (
       currentTotalMinutes >= startTotalMinutes &&
