@@ -374,6 +374,19 @@ export default function Dashboard() {
     return totalDetik >= startTotal && totalDetik <= endTotal;
   };
 
+  // Fungsi untuk normalisasi waktu ke format HH:MM:SS
+  const normalizeTime = (waktu: string | null) => {
+    if (!waktu) return null;
+    // Ubah semua titik menjadi titik dua
+    let mainTime = waktu.replace(/\./g, ":");
+    // Ambil hanya bagian jam:menit:detik (abaikan milidetik jika ada)
+    mainTime = mainTime.split(":").slice(0, 3).join(":");
+    // Pastikan format 2 digit
+    const parts = mainTime.split(":").map((p) => p.padStart(2, "0"));
+    while (parts.length < 3) parts.push("00");
+    return parts.slice(0, 3).join(":");
+  };
+
   return (
     <div className="flex min-h-screen" style={{ background: "#F1F8E9" }}>
       <div className="fixed h-full">
@@ -439,7 +452,7 @@ export default function Dashboard() {
                           className={
                             !!absensiHariIni?.absenPagi
                               ? isOnTime(
-                                  absensiHariIni.absenPagi,
+                                  normalizeTime(absensiHariIni.absenPagi),
                                   "07:30:00",
                                   "08:15:00"
                                 )
@@ -457,7 +470,8 @@ export default function Dashboard() {
                           </label>
                           <span className="text-xs text-gray-500">
                             {absensiHariIni?.absenPagi
-                              ? new Date(
+                              ? absensiHariIni.absenPagi &&
+                                new Date(
                                   absensiHariIni.absenPagi
                                 ).toLocaleTimeString("id-ID", {
                                   hour: "2-digit",
@@ -476,7 +490,7 @@ export default function Dashboard() {
                           className={
                             !!absensiHariIni?.absenSiang
                               ? isOnTime(
-                                  absensiHariIni.absenSiang,
+                                  normalizeTime(absensiHariIni.absenSiang),
                                   currentDay === 6 ? "13:00:00" : "12:00:00",
                                   currentDay === 6 ? "15:59:59" : "13:30:00"
                                 )
@@ -494,7 +508,8 @@ export default function Dashboard() {
                           </label>
                           <span className="text-xs text-gray-500">
                             {absensiHariIni?.absenSiang
-                              ? new Date(
+                              ? absensiHariIni.absenSiang &&
+                                new Date(
                                   absensiHariIni.absenSiang
                                 ).toLocaleTimeString("id-ID", {
                                   hour: "2-digit",
@@ -513,7 +528,7 @@ export default function Dashboard() {
                           className={
                             !!absensiHariIni?.absenSore
                               ? isOnTime(
-                                  absensiHariIni.absenSore,
+                                  normalizeTime(absensiHariIni.absenSore),
                                   "16:00:00",
                                   "21:00:00"
                                 )
@@ -531,7 +546,8 @@ export default function Dashboard() {
                           </label>
                           <span className="text-xs text-gray-500">
                             {absensiHariIni?.absenSore
-                              ? new Date(
+                              ? absensiHariIni.absenSore &&
+                                new Date(
                                   absensiHariIni.absenSore
                                 ).toLocaleTimeString("id-ID", {
                                   hour: "2-digit",
