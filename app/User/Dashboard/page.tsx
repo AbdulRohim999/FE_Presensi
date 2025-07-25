@@ -360,9 +360,10 @@ export default function Dashboard() {
     const mainTime = waktu.split(".")[0];
     const parts = mainTime.split(":");
     if (parts.length < 2) return false;
-    const jam = parseInt(parts[0], 10);
-    const menit = parseInt(parts[1], 10);
-    const detik = parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+    const jam = Number(parts[0]);
+    const menit = Number(parts[1]);
+    const detik = parts.length >= 3 ? Number(parts[2]) : 0;
+    if (isNaN(jam) || isNaN(menit) || isNaN(detik)) return false;
     const totalDetik = jam * 3600 + menit * 60 + detik;
     const [startJam, startMenit, startDetik] = start.split(":").map(Number);
     const [endJam, endMenit, endDetik] = end.split(":").map(Number);
