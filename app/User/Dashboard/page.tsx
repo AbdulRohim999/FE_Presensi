@@ -356,13 +356,10 @@ export default function Dashboard() {
   // Fungsi untuk menentukan apakah absen tepat waktu
   const isOnTime = (waktu: string | null, start: string, end: string) => {
     if (!waktu) return false;
-    // Ubah format 12.05.13 menjadi 12:05:13
-    let mainTime = waktu;
-    if (/^\d{2}\.\d{2}\.\d{2}$/.test(waktu)) {
-      mainTime = waktu.replace(/\./g, ":");
-    } else if (waktu.includes(".")) {
-      mainTime = waktu.split(".")[0].replace(/\./g, ":");
-    }
+    // Ubah semua titik menjadi titik dua agar format selalu HH:MM:SS
+    let mainTime = waktu.replace(/\./g, ":");
+    // Ambil hanya bagian jam:menit:detik (abaikan milidetik jika ada)
+    mainTime = mainTime.split(":").slice(0, 3).join(":");
     const parts = mainTime.split(":");
     if (parts.length < 2) return false;
     const jam = Number(parts[0]);
