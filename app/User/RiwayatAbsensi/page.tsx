@@ -42,20 +42,33 @@ interface RiwayatAbsensi {
 }
 
 // Format waktu untuk display
+const normalizeTime = (waktu: string | null) => {
+  if (!waktu) return null;
+  let mainTime = waktu.replace(/\./g, ":");
+  mainTime = mainTime.split(":").slice(0, 3).join(":");
+  const parts = mainTime.split(":").map((p) => p.padStart(2, "0"));
+  while (parts.length < 3) parts.push("00");
+  return parts.slice(0, 3).join(":");
+};
 const formatWaktu = (timeString: string | null) => {
-  if (!timeString) return "-";
-  try {
-    // Parse waktu dari string
-    const date = new Date(timeString);
-    // Format ke format yang diinginkan (contoh: 12.10)
-    return `${date.getHours().toString().padStart(2, "0")}.${date
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return "-";
-  }
+  const t = normalizeTime(timeString);
+  return t ? t : "-";
+};
+const isOnTime = (waktu: string | null, start: string, end: string) => {
+  const mainTime = normalizeTime(waktu);
+  if (!mainTime) return false;
+  const parts = mainTime.split(":");
+  if (parts.length < 2) return false;
+  const jam = Number(parts[0]);
+  const menit = Number(parts[1]);
+  const detik = parts.length >= 3 ? Number(parts[2]) : 0;
+  if (isNaN(jam) || isNaN(menit) || isNaN(detik)) return false;
+  const totalDetik = jam * 3600 + menit * 60 + detik;
+  const [startJam, startMenit, startDetik] = start.split(":").map(Number);
+  const [endJam, endMenit, endDetik] = end.split(":").map(Number);
+  const startTotal = startJam * 3600 + startMenit * 60 + startDetik;
+  const endTotal = endJam * 3600 + endMenit * 60 + endDetik;
+  return totalDetik >= startTotal && totalDetik <= endTotal;
 };
 
 // Helper function untuk validasi waktu
@@ -406,44 +419,58 @@ export default function RiwayatAbsensi() {
                             </TableCell>
                             <TableCell
                               className={
-                                !isTimeWithinRange(
-                                  formatWaktu(row.absenPagi) || "",
-                                  "07:30",
-                                  "08:15"
-                                )
+                                row.absenPagi === null || row.absenPagi === "-"
                                   ? "text-red-600 font-medium"
-                                  : ""
+                                  : isOnTime(
+                                      row.absenPagi,
+                                      "07:30:00",
+                                      "08:15:00"
+                                    )
+                                  ? "text-green-600 font-medium"
+                                  : "text-orange-500 font-medium"
                               }
                             >
-                              {formatWaktu(row.absenPagi)}
+                              {row.absenPagi ? formatWaktu(row.absenPagi) : "-"}
                             </TableCell>
                             <TableCell
                               className={
-                                !isTimeWithinRange(
-                                  formatWaktu(row.absenSiang) || "",
-                                  "12:00",
-                                  "13:30"
-                                )
+                                row.absenSiang === null ||
+                                row.absenSiang === "-"
                                   ? "text-red-600 font-medium"
-                                  : ""
+                                  : isOnTime(
+                                      row.absenSiang,
+                                      "12:00:00",
+                                      "13:30:00"
+                                    )
+                                  ? "text-green-600 font-medium"
+                                  : "text-orange-500 font-medium"
                               }
                             >
-                              {formatWaktu(row.absenSiang)}
+                              {row.absenSiang
+                                ? formatWaktu(row.absenSiang)
+                                : "-"}
                             </TableCell>
                             <TableCell
                               className={
                                 isSabtu
                                   ? "text-black font-medium"
-                                  : !isTimeWithinRange(
-                                      formatWaktu(row.absenSore) || "",
-                                      "16:00",
-                                      "21:00"
-                                    )
+                                  : row.absenSore === null ||
+                                    row.absenSore === "-"
                                   ? "text-red-600 font-medium"
-                                  : ""
+                                  : isOnTime(
+                                      row.absenSore,
+                                      "16:00:00",
+                                      "21:00:00"
+                                    )
+                                  ? "text-green-600 font-medium"
+                                  : "text-orange-500 font-medium"
                               }
                             >
-                              {isSabtu ? "*" : formatWaktu(row.absenSore)}
+                              {isSabtu
+                                ? "*"
+                                : row.absenSore
+                                ? formatWaktu(row.absenSore)
+                                : "-"}
                             </TableCell>
                             <TableCell
                               className={
