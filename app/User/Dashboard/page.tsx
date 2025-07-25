@@ -353,6 +353,24 @@ export default function Dashboard() {
     fetchUser();
   }, [token]);
 
+  // Fungsi untuk menentukan apakah absen tepat waktu
+  const isOnTime = (waktu: string | null, start: string, end: string) => {
+    if (!waktu) return false;
+    // Hilangkan milidetik jika ada
+    const mainTime = waktu.split(".")[0];
+    const parts = mainTime.split(":");
+    if (parts.length < 2) return false;
+    const jam = parseInt(parts[0], 10);
+    const menit = parseInt(parts[1], 10);
+    const detik = parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+    const totalDetik = jam * 3600 + menit * 60 + detik;
+    const [startJam, startMenit, startDetik] = start.split(":").map(Number);
+    const [endJam, endMenit, endDetik] = end.split(":").map(Number);
+    const startTotal = startJam * 3600 + startMenit * 60 + startDetik;
+    const endTotal = endJam * 3600 + endMenit * 60 + endDetik;
+    return totalDetik >= startTotal && totalDetik <= endTotal;
+  };
+
   return (
     <div className="flex min-h-screen" style={{ background: "#F1F8E9" }}>
       <div className="fixed h-full">
@@ -415,7 +433,17 @@ export default function Dashboard() {
                           id="absen-pagi"
                           checked={!!absensiHariIni?.absenPagi}
                           disabled
-                          className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                          className={
+                            !!absensiHariIni?.absenPagi
+                              ? isOnTime(
+                                  absensiHariIni.absenPagi,
+                                  "07:30:00",
+                                  "08:15:00"
+                                )
+                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                              : ""
+                          }
                         />
                         <div className="flex flex-col">
                           <label
@@ -442,7 +470,17 @@ export default function Dashboard() {
                           id="absen-siang"
                           checked={!!absensiHariIni?.absenSiang}
                           disabled
-                          className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                          className={
+                            !!absensiHariIni?.absenSiang
+                              ? isOnTime(
+                                  absensiHariIni.absenSiang,
+                                  currentDay === 6 ? "13:00:00" : "12:00:00",
+                                  currentDay === 6 ? "15:59:59" : "13:30:00"
+                                )
+                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                              : ""
+                          }
                         />
                         <div className="flex flex-col">
                           <label
@@ -469,7 +507,17 @@ export default function Dashboard() {
                           id="absen-sore"
                           checked={!!absensiHariIni?.absenSore}
                           disabled
-                          className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                          className={
+                            !!absensiHariIni?.absenSore
+                              ? isOnTime(
+                                  absensiHariIni.absenSore,
+                                  "16:00:00",
+                                  "21:00:00"
+                                )
+                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                                : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                              : ""
+                          }
                         />
                         <div className="flex flex-col">
                           <label
