@@ -4,6 +4,7 @@ import { Navbar } from "@/app/User/components/Navbar";
 import { Sidebar } from "@/app/User/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -402,6 +403,95 @@ export default function Dashboard() {
                         </DialogContent>
                       )}
                     </Dialog>
+                  </div>
+                  {/* Status Absensi Checkboxes */}
+                  <div className="mt-6 mb-6">
+                    <h4 className="text-sm font-medium mb-3 text-gray-700">
+                      Status Absensi Hari Ini
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 border">
+                        <Checkbox
+                          id="absen-pagi"
+                          checked={!!absensiHariIni?.absenPagi}
+                          disabled
+                          className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                        />
+                        <div className="flex flex-col">
+                          <label
+                            htmlFor="absen-pagi"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Absen Pagi
+                          </label>
+                          <span className="text-xs text-gray-500">
+                            {absensiHariIni?.absenPagi
+                              ? new Date(
+                                  absensiHariIni.absenPagi
+                                ).toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })
+                              : "Belum absen"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 border">
+                        <Checkbox
+                          id="absen-siang"
+                          checked={!!absensiHariIni?.absenSiang}
+                          disabled
+                          className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                        />
+                        <div className="flex flex-col">
+                          <label
+                            htmlFor="absen-siang"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Absen Siang
+                          </label>
+                          <span className="text-xs text-gray-500">
+                            {absensiHariIni?.absenSiang
+                              ? new Date(
+                                  absensiHariIni.absenSiang
+                                ).toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })
+                              : "Belum absen"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 border">
+                        <Checkbox
+                          id="absen-sore"
+                          checked={!!absensiHariIni?.absenSore}
+                          disabled
+                          className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                        />
+                        <div className="flex flex-col">
+                          <label
+                            htmlFor="absen-sore"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Absen Sore
+                          </label>
+                          <span className="text-xs text-gray-500">
+                            {absensiHariIni?.absenSore
+                              ? new Date(
+                                  absensiHariIni.absenSore
+                                ).toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })
+                              : "Belum absen"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-4 flex items-center text-sm text-muted-foreground">
                     <Briefcase className="mr-1 h-4 w-4 text-green-500" />
