@@ -191,21 +191,37 @@ export default function Dashboard() {
   const hitungProgresAbsensi = () => {
     if (!absensiHariIni) return 0;
 
+    const currentDay = new Date().getDay(); // 0: Minggu, 1: Senin, ..., 6: Sabtu
+    const isSabtu = currentDay === 6;
+
     let jumlahAbsensi = 0;
     if (absensiHariIni.absenPagi) jumlahAbsensi++;
     if (absensiHariIni.absenSiang) jumlahAbsensi++;
     if (absensiHariIni.absenSore) jumlahAbsensi++;
 
-    // Hitung persentase berdasarkan jumlah absensi
-    switch (jumlahAbsensi) {
-      case 1:
-        return 35;
-      case 2:
-        return 70;
-      case 3:
-        return 100;
-      default:
-        return 0;
+    // Hitung persentase berdasarkan hari
+    if (isSabtu) {
+      // Untuk hari Sabtu: 2 kali absensi untuk mencapai 100% (50% per absensi)
+      switch (jumlahAbsensi) {
+        case 1:
+          return 50;
+        case 2:
+          return 100;
+        default:
+          return 0;
+      }
+    } else {
+      // Untuk hari Senin-Jumat: 3 kali absensi untuk mencapai 100% (33.33% per absensi)
+      switch (jumlahAbsensi) {
+        case 1:
+          return 35;
+        case 2:
+          return 70;
+        case 3:
+          return 100;
+        default:
+          return 0;
+      }
     }
   };
 
