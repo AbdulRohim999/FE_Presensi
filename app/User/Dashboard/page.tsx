@@ -19,7 +19,8 @@ import {
   getAbsensiHariIni,
   getLaporanBulanan,
   getLaporanMingguan,
-  getServerTime,
+  getServerTimeWIB,
+  getServerTimeWIBAsDate,
   getUserData,
 } from "@/lib/api";
 import { Briefcase, ChevronDown, Clock } from "lucide-react";
@@ -89,6 +90,7 @@ export default function Dashboard() {
   );
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [serverDate, setServerDate] = useState<string>("");
   const [laporanBulanan, setLaporanBulanan] = useState<LaporanData | null>(
     null
   );
@@ -117,8 +119,12 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchTime = async () => {
       try {
-        const serverDate = await getServerTime();
-        setCurrentTime(serverDate);
+        // Ambil tanggal dan waktu dari API server-time/wib/simple
+        const wibData = await getServerTimeWIB();
+        setServerDate(wibData.date);
+        // Ambil waktu Date object dari API yang sama (gabungkan date dan time)
+        const serverDateObj = await getServerTimeWIBAsDate();
+        setCurrentTime(serverDateObj);
       } catch {
         setCurrentTime(new Date()); // fallback
       }
@@ -458,6 +464,9 @@ export default function Dashboard() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
+                      <div className="text-base text-gray-700 font-semibold mb-1">
+                        {serverDate}
+                      </div>
                       <div className="text-4xl font-bold">
                         {formatTime(currentTime)}
                       </div>

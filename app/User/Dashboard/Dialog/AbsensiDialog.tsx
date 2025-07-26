@@ -101,8 +101,15 @@ export default function AbsensiDialog() {
       await doAbsensi(token, tipeAbsen);
       toast.success(
         `Absensi ${tipeAbsen} berhasil pada ${
-          currentTime ? currentTime.toLocaleTimeString() : "-"
-        }`
+          currentTime
+            ? currentTime.toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                timeZone: "Asia/Jakarta",
+              })
+            : "-"
+        } (WIB)`
       );
       // Refresh data absensi jika diperlukan
     } catch (error) {
@@ -124,7 +131,23 @@ export default function AbsensiDialog() {
           Absen
         </DialogTitle>
         <p className="text-center text-sm text-muted-foreground">
-          Waktu saat ini: {currentTime ? currentTime.toLocaleTimeString() : "-"}
+          Waktu saat ini:{" "}
+          {currentTime
+            ? currentTime.toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                timeZone: "Asia/Jakarta",
+              })
+            : "-"}
+          <br />
+          <span className="text-xs text-gray-500">
+            WIB (Waktu Indonesia Barat)
+          </span>
+          <br />
+          <span className="text-xs text-blue-500">
+            Waktu Server - Tidak Dapat Dimanipulasi
+          </span>
         </p>
       </DialogHeader>
       <div className="grid gap-4 py-4">
