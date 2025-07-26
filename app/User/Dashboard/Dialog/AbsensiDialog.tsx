@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { doAbsensi, getServerTime } from "@/lib/api";
+import { doAbsensi, getServerTimeWIBAsDate } from "@/lib/api";
 import { Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ export default function AbsensiDialog() {
   useEffect(() => {
     const fetchTime = async () => {
       try {
-        const serverDate = await getServerTime();
+        const serverDate = await getServerTimeWIBAsDate();
         setCurrentTime(serverDate);
       } catch {
         setCurrentTime(new Date()); // fallback

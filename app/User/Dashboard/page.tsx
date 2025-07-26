@@ -133,10 +133,11 @@ export default function Dashboard() {
   // Format waktu ke format 12 jam
   const formatTime = (date: Date | null) => {
     if (!date) return "-";
-    return date.toLocaleTimeString("en-US", {
+    return date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
+      second: "2-digit",
+      timeZone: "Asia/Jakarta",
     });
   };
 
@@ -456,8 +457,13 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <div className="text-4xl font-bold">
-                      {formatTime(currentTime)}
+                    <div>
+                      <div className="text-4xl font-bold">
+                        {formatTime(currentTime)}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        WIB (Waktu Indonesia Barat)
+                      </div>
                     </div>
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogTrigger asChild>

@@ -336,6 +336,14 @@ interface ApiErrorResponse {
   };
 }
 
+// Interface untuk response waktu server WIB
+interface ServerTimeWIBResponse {
+  date: string;
+  time: string;
+  timezone: string;
+  zoneId: string;
+}
+
 // Interface for admin count response
 interface AdminCountResponse {
   count: number;
@@ -1245,4 +1253,27 @@ export async function getServerTime(): Promise<Date> {
   const data = await res.json();
   // diasumsikan data.time adalah ISO string
   return new Date(data.time);
+}
+
+// Ambil waktu server Indonesia (WIB) dengan format sederhana
+export async function getServerTimeWIB(): Promise<ServerTimeWIBResponse> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/server-time/wib/simple`
+  );
+  if (!res.ok) throw new Error("Gagal mengambil waktu server WIB");
+  const data = await res.json();
+  return data as ServerTimeWIBResponse;
+}
+
+// Ambil waktu server Indonesia (WIB) sebagai Date object
+export async function getServerTimeWIBAsDate(): Promise<Date> {
+  try {
+    const wibData = await getServerTimeWIB();
+    // Gabungkan date dan time untuk membuat Date object
+    const dateTimeString = `${wibData.date} ${wibData.time}`;
+    return new Date(dateTimeString);
+  } catch {
+    // Fallback ke endpoint lama jika endpoint baru gagal
+    return getServerTime();
+  }
 }
