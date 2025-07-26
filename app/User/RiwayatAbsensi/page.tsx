@@ -254,14 +254,14 @@ export default function RiwayatAbsensi() {
   });
 
   // Handler untuk mengubah filter tanggal
-  const handleDateChange = (date: Date | undefined, isStartDate: boolean) => {
-    if (isStartDate) {
-      setStartDate(date);
-      if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
-    } else {
-      setEndDate(date);
-      if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
-    }
+  const handleStartDateChange = (date: Date | undefined) => {
+    setStartDate(date);
+    if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    setEndDate(date);
+    if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
   };
 
   // Handler untuk mengubah filter bulan
@@ -316,20 +316,53 @@ export default function RiwayatAbsensi() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
                         <DropdownMenuItem
-                          onClick={() =>
-                            setSelectedMonth(new Date().getMonth())
-                          }
+                          onClick={() => handleMonthChange(null)}
                         >
                           Semua Bulan
                         </DropdownMenuItem>
                         {months.map((month, index) => (
                           <DropdownMenuItem
                             key={month}
-                            onClick={() => setSelectedMonth(index)}
+                            onClick={() => handleMonthChange(index)}
                           >
                             {month}
                           </DropdownMenuItem>
                         ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="flex flex-col space-y-1.5">
+                    <Label>Status</Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-[200px] justify-start"
+                        >
+                          {selectedStatus === "all"
+                            ? "Semua Status"
+                            : selectedStatus === "Valid"
+                            ? "Valid"
+                            : "Invalid"}
+                          <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem
+                          onClick={() => setSelectedStatus("all")}
+                        >
+                          Semua Status
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSelectedStatus("Valid")}
+                        >
+                          Valid
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSelectedStatus("Invalid")}
+                        >
+                          Invalid
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -355,7 +388,7 @@ export default function RiwayatAbsensi() {
                         <Calendar
                           mode="single"
                           selected={startDate}
-                          onSelect={handleDateChange}
+                          onSelect={handleStartDateChange}
                           initialFocus
                         />
                       </PopoverContent>
@@ -383,7 +416,7 @@ export default function RiwayatAbsensi() {
                         <Calendar
                           mode="single"
                           selected={endDate}
-                          onSelect={handleDateChange}
+                          onSelect={handleEndDateChange}
                           initialFocus
                         />
                       </PopoverContent>
