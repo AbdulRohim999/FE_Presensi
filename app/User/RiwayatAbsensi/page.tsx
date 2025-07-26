@@ -187,9 +187,10 @@ export default function RiwayatAbsensi() {
   const { token } = useAuth();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [selectedMonth, setSelectedMonth] = useState<number>(
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(
     new Date().getMonth()
   );
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [riwayatData, setRiwayatData] = useState<RiwayatAbsensi[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -209,7 +210,7 @@ export default function RiwayatAbsensi() {
           startDate: format(startDate, "yyyy-MM-dd"),
           endDate: format(endDate, "yyyy-MM-dd"),
         });
-      } else if (selectedMonth !== null) {
+      } else if (selectedMonth !== null && selectedMonth !== undefined) {
         // Jika ada filter bulan spesifik
         const currentYear = new Date().getFullYear();
         const startOfMonth = new Date(currentYear, selectedMonth, 1);
@@ -243,7 +244,33 @@ export default function RiwayatAbsensi() {
   // Fetch data saat komponen dimount atau bulan berubah
   useEffect(() => {
     fetchRiwayatAbsensi();
-  }, [token, selectedMonth]);
+  }, [token, selectedMonth, startDate, endDate]);
+
+  // Filter data berdasarkan status
+  const filteredData = riwayatData.filter((record) => {
+    if (selectedStatus === "all") return true;
+    const status = calculateStatus(record);
+    return status === selectedStatus;
+  });
+
+  // Handler untuk mengubah filter tanggal
+  const handleDateChange = (date: Date | undefined, isStartDate: boolean) => {
+    if (isStartDate) {
+      setStartDate(date);
+      if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
+    } else {
+      setEndDate(date);
+      if (date) setSelectedMonth(null); // Reset bulan ke "Semua Bulan"
+    }
+  };
+
+  // Handler untuk mengubah filter bulan
+  const handleMonthChange = (month: number | null) => {
+    setSelectedMonth(month);
+    // Reset tanggal filter ketika bulan dipilih
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -328,7 +355,7 @@ export default function RiwayatAbsensi() {
                         <Calendar
                           mode="single"
                           selected={startDate}
-                          onSelect={setStartDate}
+                          onSelect={handleDateChange}
                           initialFocus
                         />
                       </PopoverContent>
@@ -356,7 +383,7 @@ export default function RiwayatAbsensi() {
                         <Calendar
                           mode="single"
                           selected={endDate}
-                          onSelect={setEndDate}
+                          onSelect={handleDateChange}
                           initialFocus
                         />
                       </PopoverContent>
@@ -386,14 +413,14 @@ export default function RiwayatAbsensi() {
                           Memuat data...
                         </TableCell>
                       </TableRow>
-                    ) : riwayatData.length === 0 ? (
+                    ) : filteredData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-4">
                           Tidak ada data riwayat absensi
                         </TableCell>
                       </TableRow>
                     ) : (
-                      riwayatData.map((row) => {
+                      filteredData.map((row) => {
                         const status = calculateStatus(row);
                         const recordDate = new Date(row.tanggal);
                         const isSabtu = recordDate.getDay() === 6;
