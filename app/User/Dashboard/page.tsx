@@ -140,6 +140,22 @@ export default function Dashboard() {
     });
   };
 
+  // Fungsi untuk format waktu absensi dengan timezone Indonesia
+  const formatAbsensiTime = (waktu: string | null) => {
+    if (!waktu) return "Belum absen";
+    try {
+      const absenTime = new Date(waktu);
+      return absenTime.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "Asia/Jakarta",
+      });
+    } catch {
+      return waktu;
+    }
+  };
+
   // Fungsi untuk mengecek jaringan kampus
   const checkNetwork = async () => {
     if (!token) return;
@@ -202,7 +218,7 @@ export default function Dashboard() {
   const hitungProgresAbsensi = () => {
     if (!absensiHariIni) return 0;
 
-    const currentDay = new Date().getDay(); // 0: Minggu, 1: Senin, ..., 6: Sabtu
+    const currentDay = currentTime ? currentTime.getDay() : new Date().getDay(); // 0: Minggu, 1: Senin, ..., 6: Sabtu
     const isSabtu = currentDay === 6;
 
     let jumlahAbsensi = 0;
@@ -501,14 +517,7 @@ export default function Dashboard() {
                           </label>
                           <span className="text-xs text-gray-500">
                             {absensiHariIni?.absenPagi
-                              ? absensiHariIni.absenPagi &&
-                                new Date(
-                                  absensiHariIni.absenPagi
-                                ).toLocaleTimeString("id-ID", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  second: "2-digit",
-                                })
+                              ? formatAbsensiTime(absensiHariIni.absenPagi)
                               : "Belum absen"}
                           </span>
                         </div>
@@ -539,14 +548,7 @@ export default function Dashboard() {
                           </label>
                           <span className="text-xs text-gray-500">
                             {absensiHariIni?.absenSiang
-                              ? absensiHariIni.absenSiang &&
-                                new Date(
-                                  absensiHariIni.absenSiang
-                                ).toLocaleTimeString("id-ID", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  second: "2-digit",
-                                })
+                              ? formatAbsensiTime(absensiHariIni.absenSiang)
                               : "Belum absen"}
                           </span>
                         </div>
@@ -578,14 +580,7 @@ export default function Dashboard() {
                             </label>
                             <span className="text-xs text-gray-500">
                               {absensiHariIni?.absenSore
-                                ? absensiHariIni.absenSore &&
-                                  new Date(
-                                    absensiHariIni.absenSore
-                                  ).toLocaleTimeString("id-ID", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                  })
+                                ? formatAbsensiTime(absensiHariIni.absenSore)
                                 : "Belum absen"}
                             </span>
                           </div>
