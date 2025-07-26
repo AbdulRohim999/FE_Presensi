@@ -1235,3 +1235,14 @@ export const changeUserPasswordByAdmin = async (
     throw error;
   }
 };
+
+// Ambil waktu server Indonesia (WIB)
+export async function getServerTime(): Promise<Date> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/server-time`
+  );
+  if (!res.ok) throw new Error("Gagal mengambil waktu server");
+  const data = await res.json();
+  // diasumsikan data.time adalah ISO string
+  return new Date(data.time);
+}

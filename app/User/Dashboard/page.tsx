@@ -19,11 +19,12 @@ import {
   getAbsensiHariIni,
   getLaporanBulanan,
   getLaporanMingguan,
+  getServerTime,
   getUserData,
 } from "@/lib/api";
 import { Briefcase, ChevronDown, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -86,7 +87,8 @@ export default function Dashboard() {
   const [laporanMingguan, setLaporanMingguan] = useState<LaporanData | null>(
     null
   );
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [laporanBulanan, setLaporanBulanan] = useState<LaporanData | null>(
     null
   );
@@ -94,7 +96,7 @@ export default function Dashboard() {
   const [isInCampusNetwork, setIsInCampusNetwork] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const router = useRouter();
-  const currentDay = new Date().getDay();
+  const currentDay = currentTime ? currentTime.getDay() : new Date().getDay();
 
   // Add the requested useEffect for authentication and data fetching
   useEffect(() => {
@@ -111,17 +113,26 @@ export default function Dashboard() {
     }
   }, [token, isLoading, router]);
 
-  // Update waktu setiap detik
+  // Update waktu server setiap detik
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const fetchTime = async () => {
+      try {
+        const serverDate = await getServerTime();
+        setCurrentTime(serverDate);
+      } catch {
+        setCurrentTime(new Date()); // fallback
+      }
+    };
+    fetchTime();
+    intervalRef.current = setInterval(fetchTime, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   // Format waktu ke format 12 jam
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | null) => {
+    if (!date) return "-";
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",

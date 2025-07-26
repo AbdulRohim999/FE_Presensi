@@ -3,25 +3,34 @@
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { doAbsensi } from "@/lib/api";
+import { doAbsensi, getServerTime } from "@/lib/api";
 import { Clock, Sun, Sunset } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function AbsensiDialog() {
   const { token } = useAuth();
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isLoading, setIsLoading] = useState<"pagi" | "siang" | "sore" | null>(
     null
   );
 
-  // Update current time every second
+  // Update waktu server setiap detik
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(interval);
+    const fetchTime = async () => {
+      try {
+        const serverDate = await getServerTime();
+        setCurrentTime(serverDate);
+      } catch {
+        setCurrentTime(new Date()); // fallback
+      }
+    };
+    fetchTime();
+    intervalRef.current = setInterval(fetchTime, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   // Function to check if current time is within a specific range
@@ -32,8 +41,8 @@ export default function AbsensiDialog() {
     endMinute: number
   ): boolean => {
     const now = currentTime;
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    const currentHour = now ? now.getHours() : 0;
+    const currentMinute = now ? now.getMinutes() : 0;
 
     const currentTotalMinutes = currentHour * 60 + currentMinute;
     const startTotalMinutes = startHour * 60 + startMinute;
@@ -49,14 +58,18 @@ export default function AbsensiDialog() {
   };
 
   // Check if each absensi time is active
-  const isSaturday = currentTime.getDay() === 6; // 6 adalah hari Sabtu
-  const isMorningActive = isWithinTimeRange(7, 30, 8, 15); // Aktif sampai 10:15
+  const isSaturday = currentTime ? currentTime.getDay() === 6 : false; // 6 adalah hari Sabtu
+  const isMorningActive = currentTime ? isWithinTimeRange(7, 30, 8, 15) : false; // Aktif sampai 10:15
   // Untuk Sabtu, absen siang 13:00-15:59, selain itu 12:00-13:30
-  const isAfternoonActive = isSaturday
-    ? isWithinTimeRange(13, 0, 15, 59)
-    : isWithinTimeRange(12, 0, 13, 30); // Senin-Jumat: 12:00-13:30
+  const isAfternoonActive = currentTime
+    ? isSaturday
+      ? isWithinTimeRange(13, 0, 15, 59)
+      : isWithinTimeRange(12, 0, 13, 30)
+    : false; // Senin-Jumat: 12:00-13:30
   // Untuk Sabtu, tidak ada absen sore
-  const isEveningActive = !isSaturday && isWithinTimeRange(16, 0, 21, 0); // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
+  const isEveningActive = currentTime
+    ? !isSaturday && isWithinTimeRange(16, 0, 21, 0)
+    : false; // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
 
   const handleAbsensi = async (tipeAbsen: "pagi" | "siang" | "sore") => {
     if (!token) {
@@ -87,7 +100,9 @@ export default function AbsensiDialog() {
     try {
       await doAbsensi(token, tipeAbsen);
       toast.success(
-        `Absensi ${tipeAbsen} berhasil pada ${currentTime.toLocaleTimeString()}`
+        `Absensi ${tipeAbsen} berhasil pada ${
+          currentTime ? currentTime.toLocaleTimeString() : "-"
+        }`
       );
       // Refresh data absensi jika diperlukan
     } catch (error) {
@@ -109,7 +124,7 @@ export default function AbsensiDialog() {
           Absen
         </DialogTitle>
         <p className="text-center text-sm text-muted-foreground">
-          Waktu saat ini: {currentTime.toLocaleTimeString()}
+          Waktu saat ini: {currentTime ? currentTime.toLocaleTimeString() : "-"}
         </p>
       </DialogHeader>
       <div className="grid gap-4 py-4">
