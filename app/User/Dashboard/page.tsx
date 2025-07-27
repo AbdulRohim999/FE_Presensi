@@ -480,6 +480,9 @@ export default function Dashboard() {
                       <div className="text-xs text-red-500 mt-1">
                         {!currentTime && "Menghubungkan ke server..."}
                       </div>
+                      <div className="text-xs text-blue-500 mt-1">
+                        {currentTime && "Waktu Server Aktif"}
+                      </div>
                     </div>
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogTrigger asChild>

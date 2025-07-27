@@ -1258,20 +1258,36 @@ export async function getServerTime(): Promise<Date> {
 
 // Ambil waktu server Indonesia (WIB) dengan format sederhana
 export async function getServerTimeWIB(): Promise<ServerTimeWIBResponse> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/server-time/wib/simple`
-  );
-  if (!res.ok) throw new Error("Gagal mengambil waktu server WIB");
-  const data = await res.json();
-  return data as ServerTimeWIBResponse;
+  try {
+    console.log(
+      "Fetching from:",
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/server-time/wib/simple`
+    );
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/server-time/wib/simple`
+    );
+    console.log("Response status:", res.status);
+    if (!res.ok) throw new Error("Gagal mengambil waktu server WIB");
+    const data = await res.json();
+    console.log("Response data:", data);
+    return data as ServerTimeWIBResponse;
+  } catch (error) {
+    console.error("Error in getServerTimeWIB:", error);
+    throw new Error("Gagal mengambil waktu server WIB");
+  }
 }
 
 // Ambil waktu server Indonesia (WIB) sebagai Date object
 export async function getServerTimeWIBAsDate(): Promise<Date> {
   try {
+    console.log("Getting server time WIB...");
     const wibData = await getServerTimeWIB();
+    console.log("WIB data received:", wibData);
+
     // Ubah "27 July 2025" ke "2025-07-27"
     const [day, monthStr, year] = wibData.date.split(" ");
+    console.log("Parsed date parts:", { day, monthStr, year });
+
     const monthNames = [
       "January",
       "February",
@@ -1301,12 +1317,16 @@ export async function getServerTimeWIBAsDate(): Promise<Date> {
     let monthIdx = monthNames.findIndex(
       (m) => m.toLowerCase() === monthStr.toLowerCase()
     );
+    console.log("Month index found:", monthIdx);
     if (monthIdx > 11) monthIdx -= 12; // handle Indonesia month
     const month = ("0" + (monthIdx + 1)).slice(-2);
     const isoString = `${year}-${month}-${("0" + day).slice(-2)}T${
       wibData.time
     }+07:00`;
-    return new Date(isoString);
+    console.log("ISO string created:", isoString);
+    const dateObj = new Date(isoString);
+    console.log("Date object created:", dateObj);
+    return dateObj;
   } catch (error) {
     console.error("Error fetching server time WIB:", error);
     throw new Error("Gagal mengambil waktu server WIB");
