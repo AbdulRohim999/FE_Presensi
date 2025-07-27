@@ -338,6 +338,7 @@ interface ApiErrorResponse {
 
 // Interface untuk response waktu server WIB
 interface ServerTimeWIBResponse {
+  day: string;
   date: string;
   time: string;
   timezone: string;
@@ -1272,8 +1273,8 @@ export async function getServerTimeWIBAsDate(): Promise<Date> {
     // Gabungkan date dan time untuk membuat Date object
     const dateTimeString = `${wibData.date} ${wibData.time}`;
     return new Date(dateTimeString);
-  } catch {
-    // Fallback ke endpoint lama jika endpoint baru gagal
-    return getServerTime();
+  } catch (error) {
+    console.error("Error fetching server time WIB:", error);
+    throw new Error("Gagal mengambil waktu server WIB");
   }
 }

@@ -225,7 +225,7 @@ export default function Dashboard() {
   const hitungProgresAbsensi = () => {
     if (!absensiHariIni) return 0;
 
-    const currentDay = currentTime ? currentTime.getDay() : new Date().getDay(); // 0: Minggu, 1: Senin, ..., 6: Sabtu
+    const currentDay = currentTime ? currentTime.getDay() : 0; // 0: Minggu, 1: Senin, ..., 6: Sabtu
     const isSabtu = currentDay === 6;
 
     let jumlahAbsensi = 0;

@@ -22,8 +22,10 @@ export default function AbsensiDialog() {
       try {
         const serverDate = await getServerTimeWIBAsDate();
         setCurrentTime(serverDate);
-      } catch {
-        setCurrentTime(new Date()); // fallback
+      } catch (error) {
+        console.error("Error fetching server time:", error);
+        // Tidak menggunakan fallback ke waktu lokal
+        // Biarkan currentTime tetap null jika server tidak tersedia
       }
     };
     fetchTime();
