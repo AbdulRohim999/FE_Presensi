@@ -148,13 +148,7 @@ export default function AbsensiDialog() {
               })
             : "Server tidak tersedia"}
           <br />
-          <span className="text-xs text-gray-500">
-            WIB (Waktu Indonesia Barat)
-          </span>
           <br />
-          <span className="text-xs text-blue-500">
-            Waktu Server - Tidak Dapat Dimanipulasi
-          </span>
         </p>
       </DialogHeader>
       <div className="grid gap-4 py-4">

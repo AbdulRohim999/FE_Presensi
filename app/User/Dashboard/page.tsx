@@ -145,6 +145,21 @@ export default function Dashboard() {
     };
   }, [token]);
 
+  // Fungsi untuk mendapatkan nama hari dalam bahasa Indonesia
+  const getHariIndonesia = (date: Date | null) => {
+    if (!date) return "";
+    const hari = [
+      "Minggu",
+      "Senin",
+      "Selasa",
+      "Rabu",
+      "Kamis",
+      "Jumat",
+      "Sabtu",
+    ];
+    return hari[date.getDay()];
+  };
+
   // Format waktu ke format 12 jam
   const formatTime = (date: Date | null) => {
     if (!date) return "-";
@@ -412,40 +427,6 @@ export default function Dashboard() {
     fetchUser();
   }, [token]);
 
-  // Fungsi untuk menentukan apakah absen tepat waktu
-  const isOnTime = (waktu: string | null, start: string, end: string) => {
-    if (!waktu) return false;
-    // Ubah semua titik menjadi titik dua agar format selalu HH:MM:SS
-    let mainTime = waktu.replace(/\./g, ":");
-    // Ambil hanya bagian jam:menit:detik (abaikan milidetik jika ada)
-    mainTime = mainTime.split(":").slice(0, 3).join(":");
-    const parts = mainTime.split(":");
-    if (parts.length < 2) return false;
-    const jam = Number(parts[0]);
-    const menit = Number(parts[1]);
-    const detik = parts.length >= 3 ? Number(parts[2]) : 0;
-    if (isNaN(jam) || isNaN(menit) || isNaN(detik)) return false;
-    const totalDetik = jam * 3600 + menit * 60 + detik;
-    const [startJam, startMenit, startDetik] = start.split(":").map(Number);
-    const [endJam, endMenit, endDetik] = end.split(":").map(Number);
-    const startTotal = startJam * 3600 + startMenit * 60 + startDetik;
-    const endTotal = endJam * 3600 + endMenit * 60 + endDetik;
-    return totalDetik >= startTotal && totalDetik <= endTotal;
-  };
-
-  // Fungsi untuk normalisasi waktu ke format HH:MM:SS
-  const normalizeTime = (waktu: string | null) => {
-    if (!waktu) return null;
-    // Ubah semua titik menjadi titik dua
-    let mainTime = waktu.replace(/\./g, ":");
-    // Ambil hanya bagian jam:menit:detik (abaikan milidetik jika ada)
-    mainTime = mainTime.split(":").slice(0, 3).join(":");
-    // Pastikan format 2 digit
-    const parts = mainTime.split(":").map((p) => p.padStart(2, "0"));
-    while (parts.length < 3) parts.push("00");
-    return parts.slice(0, 3).join(":");
-  };
-
   return (
     <div className="flex min-h-screen" style={{ background: "#F1F8E9" }}>
       <div className="fixed h-full">
@@ -474,7 +455,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base text-gray-700 font-semibold mb-1">
-                        {serverDate || "Memuat tanggal..."}
+                        {currentTime
+                          ? `${getHariIndonesia(currentTime)}, ${serverDate}`
+                          : "Memuat tanggal..."}
                       </div>
                       <div className="text-4xl font-bold">
                         {currentTime
@@ -530,13 +513,7 @@ export default function Dashboard() {
                           disabled
                           className={
                             !!absensiHariIni?.absenPagi
-                              ? isOnTime(
-                                  normalizeTime(absensiHariIni.absenPagi),
-                                  "07:30:00",
-                                  "08:15:00"
-                                )
-                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                                : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                              ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                               : ""
                           }
                         />
@@ -561,13 +538,7 @@ export default function Dashboard() {
                           disabled
                           className={
                             !!absensiHariIni?.absenSiang
-                              ? isOnTime(
-                                  normalizeTime(absensiHariIni.absenSiang),
-                                  currentDay === 6 ? "13:00:00" : "12:00:00",
-                                  currentDay === 6 ? "15:59:59" : "13:30:00"
-                                )
-                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                                : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                              ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                               : ""
                           }
                         />
@@ -593,13 +564,7 @@ export default function Dashboard() {
                             disabled
                             className={
                               !!absensiHariIni?.absenSore
-                                ? isOnTime(
-                                    normalizeTime(absensiHariIni.absenSore),
-                                    "16:00:00",
-                                    "21:00:00"
-                                  )
-                                  ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                                  : "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                                ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
                                 : ""
                             }
                           />
