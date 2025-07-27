@@ -120,22 +120,141 @@ export default function UserAttendanceReport({
     );
   };
 
+  // Fungsi untuk format waktu
+  const formatTime = (timeString: string | null) => {
+    if (!timeString) return "-";
+    try {
+      // Jika ada titik, ambil sebelum titik (hilangkan milidetik/mikrodetik)
+      const mainTime = timeString.split(".")[0];
+      const parts = mainTime.split(":").map((part) => part.padStart(2, "0"));
+      if (parts.length === 3) {
+        return `${parts[0]}:${parts[1]}:${parts[2]}`;
+      } else if (parts.length === 2) {
+        return `${parts[0]}:${parts[1]}:00`;
+      }
+      // Jika format Date ISO
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) return "-";
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      return `${hours}:${minutes}:${seconds}`;
+    } catch {
+      return "-";
+    }
+  };
+
+  // Fungsi untuk mengecek apakah waktu berada dalam rentang
+  const isTimeWithinRange = (
+    time: string | null,
+    startTime: string,
+    endTime: string
+  ) => {
+    if (!time) return false;
+    try {
+      // Format waktu untuk perbandingan
+      let formattedTime = time;
+      if (time.includes("T")) {
+        // Jika format ISO, ambil bagian waktu saja
+        const date = new Date(time);
+        if (isNaN(date.getTime())) return false;
+        formattedTime = `${date.getHours().toString().padStart(2, "0")}:${date
+          .getMinutes()
+          .toString()
+          .padStart(2, "0")}`;
+      } else if (time.includes(".")) {
+        // Jika ada milidetik, ambil sebelum titik
+        formattedTime = time.split(".")[0];
+      }
+
+      const [hours, minutes] = formattedTime.split(":").map(Number);
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+      const timeInMinutes = hours * 60 + minutes;
+      const startInMinutes = startHours * 60 + startMinutes;
+      const endInMinutes = endHours * 60 + endMinutes;
+
+      return timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes;
+    } catch (error) {
+      console.error("Error checking time range:", error);
+      return false;
+    }
+  };
+
   // Fungsi untuk mengecek dan mengubah status menjadi Invalid setelah jam 21:00
   const checkAndUpdateStatus = (record: KehadiranUser) => {
     const today = new Date();
     const recordDate = new Date(record.tanggalAbsensi);
+    const isToday = recordDate.toDateString() === today.toDateString();
+    const isSaturday = recordDate.getDay() === 6; // 6 adalah hari Sabtu
 
-    // Jika tanggal record adalah hari ini
-    if (recordDate.toDateString() === today.toDateString()) {
-      // Jika sudah lewat jam 21:00
-      if (today.getHours() >= 21) {
-        // Jika status masih "Belum Lengkap"
-        if (record.status === "Belum Lengkap") {
-          return "Invalid";
+    // Jika status dari backend adalah "Izin", itu yang utama
+    if (record.status === "Izin") {
+      return "Izin";
+    }
+
+    // Cek untuk status "Pending" (jika hari ini dan belum lewat waktu absen akhir, serta belum lengkap)
+    const absenPagiDone = !!record.absenPagi;
+    const absenSiangDone = !!record.absenSiang;
+    const absenSoreDone = !!record.absenSore;
+
+    if (isToday) {
+      // Waktu akhir absen untuk hari ini, tergantung hari Sabtu atau tidak
+      const lastAbsenHour = isSaturday ? 18 : 21; // 18:00 untuk Sabtu, 21:00 untuk hari biasa
+      const lastAbsenMinute = 0;
+
+      if (
+        today.getHours() < lastAbsenHour ||
+        (today.getHours() === lastAbsenHour &&
+          today.getMinutes() < lastAbsenMinute)
+      ) {
+        if (isSaturday) {
+          // Untuk Sabtu: absen pagi & siang
+          if (!absenPagiDone || !absenSiangDone) {
+            return "Pending";
+          }
+        } else {
+          // Hari biasa: absen pagi, siang, sore
+          if (!absenPagiDone || !absenSiangDone || !absenSoreDone) {
+            return "Pending";
+          }
         }
       }
     }
-    return record.status;
+
+    // Tentukan status berdasarkan kelengkapan dan validitas absen
+    const isPagiValid = isTimeWithinRange(record.absenPagi, "07:30", "08:15");
+    const isSiangValid = isTimeWithinRange(record.absenSiang, "12:00", "13:30");
+    const isSoreValid = isTimeWithinRange(record.absenSore, "16:00", "21:00");
+
+    if (isSaturday) {
+      // Untuk Sabtu, validasi waktu siang berbeda
+      const isSiangValidSabtu = isTimeWithinRange(
+        record.absenSiang,
+        "13:00",
+        "18:00"
+      );
+
+      if (absenPagiDone && absenSiangDone && isPagiValid && isSiangValidSabtu) {
+        return "Valid";
+      } else {
+        return "Invalid";
+      }
+    } else {
+      if (
+        absenPagiDone &&
+        absenSiangDone &&
+        absenSoreDone &&
+        isPagiValid &&
+        isSiangValid &&
+        isSoreValid
+      ) {
+        return "Valid";
+      } else {
+        return "Invalid";
+      }
+    }
   };
 
   const fetchKehadiranData = async () => {
@@ -233,30 +352,6 @@ export default function UserAttendanceReport({
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
-  };
-
-  // Format time (jam:menit)
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return null;
-    try {
-      // Jika ada titik, ambil sebelum titik (hilangkan milidetik/mikrodetik)
-      const mainTime = timeString.split(".")[0];
-      const parts = mainTime.split(":").map((part) => part.padStart(2, "0"));
-      if (parts.length === 3) {
-        return `${parts[0]}:${parts[1]}:${parts[2]}`;
-      } else if (parts.length === 2) {
-        return `${parts[0]}:${parts[1]}:00`;
-      }
-      // Jika format Date ISO
-      const date = new Date(timeString);
-      if (isNaN(date.getTime())) return null;
-      const hours = date.getHours().toString().padStart(2, "0");
-      const minutes = date.getMinutes().toString().padStart(2, "0");
-      const seconds = date.getSeconds().toString().padStart(2, "0");
-      return `${hours}:${minutes}:${seconds}`;
-    } catch {
-      return null;
-    }
   };
 
   const handleDownloadPDF = () => {
@@ -470,9 +565,8 @@ export default function UserAttendanceReport({
                         <SelectItem value="all">Semua Status</SelectItem>
                         <SelectItem value="Valid">Valid</SelectItem>
                         <SelectItem value="Invalid">Invalid</SelectItem>
-                        <SelectItem value="Belum Lengkap">
-                          Belum Lengkap
-                        </SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Izin">Izin</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -531,13 +625,20 @@ export default function UserAttendanceReport({
                               {formatTime(record.absenSiang)}
                             </TableCell>
                             <TableCell className="text-center">
-                              {formatTime(record.absenSore)}
+                              {(() => {
+                                const date = new Date(record.tanggalAbsensi);
+                                const isSaturday = date.getDay() === 6;
+                                if (isSaturday) return "*";
+                                return formatTime(record.absenSore);
+                              })()}
                             </TableCell>
                             <TableCell className="text-center">
                               <span
                                 className={`px-2 py-1 rounded-full text-sm ${
                                   record.status === "Valid"
                                     ? "bg-green-100 text-green-800"
+                                    : record.status === "Pending"
+                                    ? "bg-yellow-100 text-yellow-800"
                                     : record.status === "Izin"
                                     ? "bg-yellow-100 text-yellow-800"
                                     : "bg-red-100 text-red-800"

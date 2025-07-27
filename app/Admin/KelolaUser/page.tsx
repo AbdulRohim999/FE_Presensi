@@ -43,8 +43,7 @@ interface User {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string | null;
-  photo_profile?: string;
-  fotoProfileUrl?: string;
+  fotoProfile?: string | null;
 }
 
 export default function KelolaUser() {
@@ -69,15 +68,15 @@ export default function KelolaUser() {
       // Buat map foto profile dari data yang sudah ada
       const photoMap: { [key: number]: string } = {};
       data.forEach((user) => {
-        if (user.photo_profile) {
-          // Jika photo_profile sudah berupa URL lengkap, gunakan langsung
-          if (user.photo_profile.startsWith("http")) {
-            photoMap[user.idUser] = user.photo_profile;
+        if (user.fotoProfile) {
+          // Jika fotoProfile sudah berupa URL lengkap, gunakan langsung
+          if (user.fotoProfile.startsWith("http")) {
+            photoMap[user.idUser] = user.fotoProfile;
           } else {
             // Jika hanya nama file, gabungkan dengan base URL
             photoMap[
               user.idUser
-            ] = `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.photo_profile}`;
+            ] = `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.fotoProfile}`;
           }
         }
       });
@@ -108,16 +107,16 @@ export default function KelolaUser() {
 
   // Fungsi untuk mendapatkan URL foto profile user
   const getUserPhotoUrl = (user: User) => {
-    // Prioritas: userPhotos (dari state) > photo_profile (dari API) > fallback
+    // Prioritas: userPhotos (dari state) > fotoProfile (dari API) > fallback
     if (userPhotos[user.idUser]) {
       return userPhotos[user.idUser];
     }
 
-    if (user.photo_profile) {
-      if (user.photo_profile.startsWith("http")) {
-        return user.photo_profile;
+    if (user.fotoProfile) {
+      if (user.fotoProfile.startsWith("http")) {
+        return user.fotoProfile;
       } else {
-        return `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.photo_profile}`;
+        return `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.fotoProfile}`;
       }
     }
 

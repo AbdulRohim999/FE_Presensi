@@ -20,7 +20,7 @@ interface LoginResponse {
   bidangKerja: string | null;
   alamat: string;
   phoneNumber: string;
-  fotoProfile: string;
+  fotoProfile?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +47,7 @@ interface RiwayatAbsensi {
   absenSore: string | null;
   statusSore: string;
   status: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk parameter rentang tanggal
@@ -67,11 +68,13 @@ interface PerizinanResponse {
   createdAt: string;
   updatedAt: string;
   namaUser: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request absensi
 interface AbsensiRequest {
   tipeAbsen: "pagi" | "siang" | "sore";
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response profile
@@ -90,7 +93,7 @@ export interface ProfileResponse {
   phoneNumber: string;
   createdAt: string;
   updatedAt: string;
-  fotoProfile?: string;
+  fotoProfile?: string | null;
   fotoProfileUrl?: string;
 }
 
@@ -109,7 +112,7 @@ interface AdminUserResponse {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string | null;
-  photo_profile?: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response kehadiran hari ini (admin)
@@ -121,6 +124,7 @@ interface KehadiranHariIniResponse {
   absenSiang: string | null;
   absenSore: string | null;
   status: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response daftar pengguna
@@ -138,6 +142,7 @@ interface DaftarPenggunaResponse {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string | null;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request tambah user
@@ -150,6 +155,7 @@ interface TambahUserRequest {
   tipeUser: string;
   bidangKerja: string;
   status: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request update user
@@ -163,6 +169,7 @@ interface UpdateUserRequest {
   status: string;
   alamat: string;
   phoneNumber: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response kehadiran user
@@ -175,6 +182,7 @@ interface KehadiranUserResponse {
   absenSiang: string | null;
   absenSore: string | null;
   status: string;
+  fotoProfile?: string | null;
 }
 
 export interface PerizinanAdmin {
@@ -189,6 +197,7 @@ export interface PerizinanAdmin {
   updatedAt: string;
   namaUser: string;
   lampiran?: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response daftar admin
@@ -206,6 +215,7 @@ interface AdminResponse {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string | null;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response laporan mingguan
@@ -218,6 +228,7 @@ interface LaporanMingguan {
   terlambat: number;
   tidakMasuk: number;
   izin: number;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response laporan bulanan
@@ -230,6 +241,7 @@ interface LaporanBulanan {
   terlambat: number;
   tidakMasuk: number;
   izin: number;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response total user
@@ -247,6 +259,7 @@ interface JumlahStatusKehadiran {
   validCount: number;
   invalidCount: number;
   totalCount: number;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk informasi admin
@@ -260,6 +273,7 @@ export interface InformasiAdmin {
   targetTipeUser: string;
   createdAt: string;
   kategori: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request create informasi
@@ -270,6 +284,7 @@ interface CreateInformasiRequest {
   tanggalSelesai: string;
   targetTipeUser: string;
   kategori: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request update informasi
@@ -280,12 +295,14 @@ export interface UpdateInformasiRequest {
   tanggalSelesai?: string;
   targetTipeUser?: string;
   kategori?: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk parameter periode
 interface PeriodeParams {
   startDate: string;
   endDate: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response pengecekan jaringan
@@ -303,6 +320,7 @@ export interface AddAdminRequest {
   password: string;
   role: string;
   status: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response upload foto profile
@@ -320,6 +338,7 @@ interface UpdateAdminRequest {
   status: string;
   alamat: string;
   phoneNumber: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk request ganti password
@@ -327,6 +346,7 @@ interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
   confirmPassword: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response error
@@ -335,6 +355,13 @@ interface ApiErrorResponse {
   errors?: {
     [key: string]: string[];
   };
+  fotoProfile?: string | null;
+}
+
+// Interface untuk response delete user
+interface DeleteUserResponse {
+  message: string;
+  fotoProfile?: string | null;
 }
 
 // Interface untuk response waktu server WIB
@@ -344,6 +371,7 @@ interface ServerTimeWIBResponse {
   time: string;
   timezone: string;
   zoneId: string;
+  fotoProfile?: string | null;
 }
 
 // Interface for admin count response
@@ -801,15 +829,29 @@ export const updateUser = async (
 export const deleteUser = async (
   token: string,
   userId: number
-): Promise<void> => {
+): Promise<DeleteUserResponse> => {
   try {
-    await apiClient.delete(`${BASE_URL}/api/admin/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.delete(
+      `${BASE_URL}/api/admin/users/${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
-    throw error;
+    console.error("Error deleting user:", error);
+    if (error instanceof AxiosError) {
+      const errorData = error.response?.data as ApiErrorResponse;
+      console.error("Server error details:", {
+        status: error.response?.status,
+        data: errorData,
+        message: error.message,
+      });
+      throw new Error(errorData?.message || "Gagal menghapus user");
+    }
+    throw new Error("Gagal menghapus user");
   }
 };
 
@@ -855,7 +897,7 @@ export const updateStatusPerizinanAdmin = async (
   idPerizinan: number,
   status: string,
   token: string
-) => {
+): Promise<{ message: string }> => {
   const cleanToken = token.replace(/^"(.*)"$/, "$1");
 
   const response = await apiClient.put(

@@ -51,7 +51,7 @@ interface KehadiranUser {
 // Helper functions (Dipindahkan ke sini agar dapat diakses oleh checkAndUpdateStatus)
 // Format time (jam:menit)
 const formatTime = (timeString: string | null) => {
-  if (!timeString) return null;
+  if (!timeString) return "-";
   try {
     // Jika ada titik, ambil sebelum titik (hilangkan milidetik/mikrodetik)
     const mainTime = timeString.split(".")[0];
@@ -63,13 +63,13 @@ const formatTime = (timeString: string | null) => {
     }
     // Jika format Date ISO
     const date = new Date(timeString);
-    if (isNaN(date.getTime())) return null;
+    if (isNaN(date.getTime())) return "-";
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
     const seconds = date.getSeconds().toString().padStart(2, "0");
     return `${hours}:${minutes}:${seconds}`;
   } catch {
-    return null;
+    return "-";
   }
 };
 
@@ -81,7 +81,22 @@ const isTimeWithinRange = (
 ) => {
   if (!time) return false;
   try {
-    const [hours, minutes] = time.split(":").map(Number);
+    // Format waktu untuk perbandingan
+    let formattedTime = time;
+    if (time.includes("T")) {
+      // Jika format ISO, ambil bagian waktu saja
+      const date = new Date(time);
+      if (isNaN(date.getTime())) return false;
+      formattedTime = `${date.getHours().toString().padStart(2, "0")}:${date
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+    } else if (time.includes(".")) {
+      // Jika ada milidetik, ambil sebelum titik
+      formattedTime = time.split(".")[0];
+    }
+
+    const [hours, minutes] = formattedTime.split(":").map(Number);
     const [startHours, startMinutes] = startTime.split(":").map(Number);
     const [endHours, endMinutes] = endTime.split(":").map(Number);
 
@@ -143,8 +158,8 @@ export default function UserAttendanceReport({
 
     if (isToday) {
       // Waktu akhir absen untuk hari ini, tergantung hari Sabtu atau tidak
-      const lastAbsenHour = isSaturday ? 13 : 21; // 13:30 untuk Sabtu, 21:00 untuk hari biasa
-      const lastAbsenMinute = isSaturday ? 30 : 0;
+      const lastAbsenHour = isSaturday ? 18 : 21; // 18:00 untuk Sabtu, 21:00 untuk hari biasa
+      const lastAbsenMinute = 0;
 
       if (
         today.getHours() < lastAbsenHour ||
@@ -171,7 +186,14 @@ export default function UserAttendanceReport({
     const isSoreValid = isTimeWithinRange(record.absenSore, "16:00", "21:00");
 
     if (isSaturday) {
-      if (absenPagiDone && absenSiangDone && isPagiValid && isSiangValid) {
+      // Untuk Sabtu, validasi waktu siang berbeda
+      const isSiangValidSabtu = isTimeWithinRange(
+        record.absenSiang,
+        "13:00",
+        "18:00"
+      );
+
+      if (absenPagiDone && absenSiangDone && isPagiValid && isSiangValidSabtu) {
         return "Valid";
       } else {
         return "Invalid";
@@ -574,23 +596,17 @@ export default function UserAttendanceReport({
                               {formatDate(record.tanggalAbsensi)}
                             </TableCell>
                             <TableCell className="text-center">
-                              {record.absenPagi
-                                ? formatTime(record.absenPagi)
-                                : "-"}
+                              {formatTime(record.absenPagi)}
                             </TableCell>
                             <TableCell className="text-center">
-                              {record.absenSiang
-                                ? formatTime(record.absenSiang)
-                                : "-"}
+                              {formatTime(record.absenSiang)}
                             </TableCell>
                             <TableCell className="text-center">
                               {(() => {
                                 const date = new Date(record.tanggalAbsensi);
                                 const isSaturday = date.getDay() === 6;
                                 if (isSaturday) return "*";
-                                return record.absenSore
-                                  ? formatTime(record.absenSore)
-                                  : "-";
+                                return formatTime(record.absenSore);
                               })()}
                             </TableCell>
                             <TableCell className="text-center">
