@@ -44,6 +44,7 @@ interface User {
   createdAt: string;
   updatedAt: string | null;
   photo_profile?: string;
+  fotoProfileUrl?: string;
 }
 
 export default function KelolaUser() {
@@ -55,6 +56,7 @@ export default function KelolaUser() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
+  const [userPhotos, setUserPhotos] = useState<{ [key: number]: string }>({});
 
   const fetchUsers = useCallback(async () => {
     if (!token) return;
@@ -63,6 +65,23 @@ export default function KelolaUser() {
       setIsLoading(true);
       const data = await getAdminUsers(token);
       setUsers(data);
+
+      // Buat map foto profile dari data yang sudah ada
+      const photoMap: { [key: number]: string } = {};
+      data.forEach((user) => {
+        if (user.photo_profile) {
+          // Jika photo_profile sudah berupa URL lengkap, gunakan langsung
+          if (user.photo_profile.startsWith("http")) {
+            photoMap[user.idUser] = user.photo_profile;
+          } else {
+            // Jika hanya nama file, gabungkan dengan base URL
+            photoMap[
+              user.idUser
+            ] = `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.photo_profile}`;
+          }
+        }
+      });
+      setUserPhotos(photoMap);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Gagal mengambil data pengguna");
@@ -86,6 +105,30 @@ export default function KelolaUser() {
       window.removeEventListener("refreshUsers", handleRefreshUsers);
     };
   }, [fetchUsers]);
+
+  // Fungsi untuk mendapatkan URL foto profile user
+  const getUserPhotoUrl = (user: User) => {
+    // Prioritas: userPhotos (dari state) > photo_profile (dari API) > fallback
+    if (userPhotos[user.idUser]) {
+      return userPhotos[user.idUser];
+    }
+
+    if (user.photo_profile) {
+      if (user.photo_profile.startsWith("http")) {
+        return user.photo_profile;
+      } else {
+        return `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.photo_profile}`;
+      }
+    }
+
+    return ""; // Fallback ke AvatarFallback
+  };
+
+  // Fungsi untuk handle error loading foto
+  const handlePhotoError = (userId: number) => {
+    console.log(`Failed to load photo for user ${userId}, using fallback`);
+    // Bisa ditambahkan logic untuk retry atau set default image
+  };
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "dd MMMM yyyy HH:mm", { locale: id });
@@ -177,8 +220,9 @@ export default function KelolaUser() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
-                                src={user.photo_profile || ""}
+                                src={getUserPhotoUrl(user)}
                                 alt={user.firstname + " " + user.lastname}
+                                onError={() => handlePhotoError(user.idUser)}
                               />
                               <AvatarFallback>
                                 {user.firstname.charAt(0).toUpperCase()}
@@ -283,7 +327,7 @@ export default function KelolaUser() {
       </div>
       {selectedUser && (
         <EditUserDialog
-          user={selectedUser}
+          user={selectedUser as User}
           open={editUserDialogOpen}
           onOpenChange={(open) => {
             console.log("Dialog open:", open);
@@ -320,7 +364,7 @@ export default function KelolaUser() {
             setEditPasswordDialogOpen(open);
             if (!open) setSelectedUser(null);
           }}
-          user={selectedUser}
+          user={selectedUser as User}
           onSubmit={() => {
             setEditPasswordDialogOpen(false);
             setSelectedUser(null);
