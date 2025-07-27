@@ -98,7 +98,7 @@ export default function Dashboard() {
   const [isInCampusNetwork, setIsInCampusNetwork] = useState(false);
   const [userName, setUserName] = useState<string>("");
   const router = useRouter();
-  const currentDay = currentTime ? currentTime.getDay() : new Date().getDay();
+  const currentDay = currentTime ? currentTime.getDay() : 0; // Default ke Minggu jika server tidak tersedia
 
   // Add the requested useEffect for authentication and data fetching
   useEffect(() => {
@@ -125,8 +125,10 @@ export default function Dashboard() {
         // Ambil waktu Date object dari API yang sama (gabungkan date dan time)
         const serverDateObj = await getServerTimeWIBAsDate();
         setCurrentTime(serverDateObj);
-      } catch {
-        setCurrentTime(new Date()); // fallback
+      } catch (error) {
+        console.error("Error fetching server time:", error);
+        // Tidak menggunakan fallback ke waktu lokal
+        // Biarkan currentTime tetap null jika server tidak tersedia
       }
     };
     fetchTime();
@@ -269,7 +271,7 @@ export default function Dashboard() {
         token,
         selectedWeek,
         selectedMonth + 1,
-        new Date().getFullYear()
+        currentTime ? currentTime.getFullYear() : new Date().getFullYear()
       );
       setLaporanMingguan(data);
     } catch (error) {
@@ -311,7 +313,7 @@ export default function Dashboard() {
       const data = await getLaporanBulanan(
         token,
         selectedMonth + 1,
-        new Date().getFullYear()
+        currentTime ? currentTime.getFullYear() : new Date().getFullYear()
       );
       setLaporanBulanan(data);
     } catch (error) {

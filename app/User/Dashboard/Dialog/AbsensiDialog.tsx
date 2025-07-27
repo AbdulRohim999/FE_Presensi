@@ -141,7 +141,7 @@ export default function AbsensiDialog() {
                 second: "2-digit",
                 timeZone: "Asia/Jakarta",
               })
-            : "-"}
+            : "Server tidak tersedia"}
           <br />
           <span className="text-xs text-gray-500">
             WIB (Waktu Indonesia Barat)
