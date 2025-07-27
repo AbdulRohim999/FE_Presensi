@@ -120,23 +120,30 @@ export default function Dashboard() {
     const fetchTime = async () => {
       try {
         // Ambil tanggal dan waktu dari API server-time/wib/simple
-        const wibData = await getServerTimeWIB();
+        const wibData = await getServerTimeWIB(token!);
         setServerDate(wibData.date);
         // Ambil waktu Date object dari API yang sama (gabungkan date dan time)
-        const serverDateObj = await getServerTimeWIBAsDate();
+        const serverDateObj = await getServerTimeWIBAsDate(token!);
         setCurrentTime(serverDateObj);
       } catch (error) {
         console.error("Error fetching server time:", error);
         // Tidak menggunakan fallback ke waktu lokal
         // Biarkan currentTime tetap null jika server tidak tersedia
+        setCurrentTime(null);
+        setServerDate("");
       }
     };
-    fetchTime();
-    intervalRef.current = setInterval(fetchTime, 1000);
+
+    // Hanya fetch jika ada token
+    if (token) {
+      fetchTime();
+      intervalRef.current = setInterval(fetchTime, 1000);
+    }
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [token]);
 
   // Format waktu ke format 12 jam
   const formatTime = (date: Date | null) => {
@@ -480,8 +487,8 @@ export default function Dashboard() {
                       <div className="text-xs text-red-500 mt-1">
                         {!currentTime && "Menghubungkan ke server..."}
                       </div>
-                      <div className="text-xs text-blue-500 mt-1">
-                        {currentTime && "Waktu Server Aktif"}
+                      <div className="text-xs text-green-500 mt-1">
+                        {currentTime && "✓ Waktu Server Aktif"}
                       </div>
                     </div>
                     <Dialog open={open} onOpenChange={setOpen}>

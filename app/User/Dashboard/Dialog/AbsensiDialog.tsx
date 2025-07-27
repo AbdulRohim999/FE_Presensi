@@ -20,7 +20,7 @@ export default function AbsensiDialog() {
   useEffect(() => {
     const fetchTime = async () => {
       try {
-        const serverDate = await getServerTimeWIBAsDate();
+        const serverDate = await getServerTimeWIBAsDate(token!);
         setCurrentTime(serverDate);
       } catch (error) {
         console.error("Error fetching server time:", error);
@@ -28,12 +28,17 @@ export default function AbsensiDialog() {
         // Biarkan currentTime tetap null jika server tidak tersedia
       }
     };
-    fetchTime();
-    intervalRef.current = setInterval(fetchTime, 1000);
+
+    // Hanya fetch jika ada token
+    if (token) {
+      fetchTime();
+      intervalRef.current = setInterval(fetchTime, 1000);
+    }
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [token]);
 
   // Function to check if current time is within a specific range
   const isWithinTimeRange = (
