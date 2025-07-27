@@ -149,6 +149,7 @@ interface TambahUserRequest {
   password: string;
   tipeUser: string;
   bidangKerja: string;
+  status: string;
 }
 
 // Interface untuk request update user
@@ -750,14 +751,27 @@ export const tambahUser = async (
   data: TambahUserRequest
 ): Promise<DaftarPenggunaResponse> => {
   try {
+    console.log("Sending user data:", data);
     const response = await apiClient.post(`${BASE_URL}/api/admin/users`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
     });
+    console.log("Response:", response.data);
     return response.data;
   } catch (error) {
-    throw error;
+    console.error("Error in tambahUser:", error);
+    if (error instanceof AxiosError) {
+      const errorData = error.response?.data as ApiErrorResponse;
+      console.error("Server error details:", {
+        status: error.response?.status,
+        data: errorData,
+        message: error.message,
+      });
+      throw new Error(errorData?.message || "Gagal menambahkan user");
+    }
+    throw new Error("Gagal menambahkan user");
   }
 };
 

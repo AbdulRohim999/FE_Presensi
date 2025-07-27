@@ -22,7 +22,7 @@ import { getAdminUsers } from "@/lib/api";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Lock, Pencil, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DeleteUserDialog } from "./Dialog/DeleteUser";
 import { EditPasswordDialog } from "./Dialog/EditPassword";
@@ -56,7 +56,7 @@ export default function KelolaUser() {
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -69,11 +69,23 @@ export default function KelolaUser() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchUsers();
-  }, [token]);
+  }, [fetchUsers]);
+
+  // Listen for refresh event from AddUserDialog
+  useEffect(() => {
+    const handleRefreshUsers = () => {
+      fetchUsers();
+    };
+
+    window.addEventListener("refreshUsers", handleRefreshUsers);
+    return () => {
+      window.removeEventListener("refreshUsers", handleRefreshUsers);
+    };
+  }, [fetchUsers]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "dd MMMM yyyy HH:mm", { locale: id });

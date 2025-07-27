@@ -42,6 +42,12 @@ export function AddUserDialog() {
     status: "Aktif",
   });
 
+  // Function to refresh parent component data
+  const refreshData = () => {
+    // Trigger a custom event to refresh the parent component
+    window.dispatchEvent(new CustomEvent("refreshUsers"));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -62,13 +68,57 @@ export function AddUserDialog() {
       return;
     }
 
+    // Validasi data sebelum dikirim
+    if (
+      !formData.firstname.trim() ||
+      !formData.lastname.trim() ||
+      !formData.email.trim() ||
+      !formData.username.trim() ||
+      !formData.password.trim() ||
+      !formData.tipeUser ||
+      !formData.bidangKerja
+    ) {
+      toast.error("Semua field harus diisi");
+      return;
+    }
+
+    // Validasi email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Format email tidak valid");
+      return;
+    }
+
+    // Validasi password minimal 8 karakter
+    if (formData.password.length < 8) {
+      toast.error("Password minimal 8 karakter");
+      return;
+    }
+
+    // Validasi username tidak boleh mengandung spasi atau karakter khusus
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(formData.username)) {
+      toast.error(
+        "Username hanya boleh mengandung huruf, angka, dan underscore (_)"
+      );
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const userData = {
-        ...formData,
+        firstname: formData.firstname.trim(),
+        lastname: formData.lastname.trim(),
+        email: formData.email.trim().toLowerCase(),
+        username: formData.username.trim(),
+        password: formData.password,
+        tipeUser: formData.tipeUser,
+        bidangKerja: formData.bidangKerja,
         status: "Aktif",
       };
+
+      console.log("Submitting user data:", userData);
       await tambahUser(token, userData);
       toast.success("User berhasil ditambahkan");
       setOpen(false);
@@ -83,9 +133,14 @@ export function AddUserDialog() {
         bidangKerja: "",
         status: "Aktif",
       });
+      refreshData(); // Call refreshData after successful addition
     } catch (error) {
       console.error("Error adding user:", error);
-      toast.error("Gagal menambahkan user");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Gagal menambahkan user");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +215,7 @@ export function AddUserDialog() {
                 value={formData.username}
                 onChange={handleChange}
                 className="col-span-3"
-                placeholder="Masukkan username (tanpa spasi)"
+                placeholder="Username (huruf, angka, underscore)"
                 required
               />
             </div>
