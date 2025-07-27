@@ -68,7 +68,12 @@ export function Navbar() {
 
       try {
         const data = await getUserData(token);
-        setProfile(data);
+        if (data && typeof data === "object" && "idUser" in data) {
+          setProfile({
+            ...data,
+            fotoProfile: data.fotoProfile ?? "",
+          });
+        }
       } catch (error) {
         console.error("Error fetching profile data:", error);
       }

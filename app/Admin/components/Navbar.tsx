@@ -53,7 +53,16 @@ export function Navbar() {
           getUserData(token),
           getProfilePhoto(token),
         ]);
-        setProfile(profileData);
+        if (
+          profileData &&
+          typeof profileData === "object" &&
+          "idUser" in profileData
+        ) {
+          setProfile({
+            ...profileData,
+            fotoProfile: profileData.fotoProfile ?? "",
+          });
+        }
         setProfilePhoto(photoData);
       } catch (error) {
         console.error("Error fetching profile:", error);

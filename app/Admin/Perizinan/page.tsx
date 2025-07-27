@@ -90,16 +90,12 @@ export default function KelolaPerizian() {
     try {
       setIsLoading(true);
 
-      const updatedPerizinan = await updateStatusPerizinanAdmin(
-        idPerizinan,
-        status,
-        token
-      );
+      await updateStatusPerizinanAdmin(idPerizinan, status, token);
 
       // Update data lokal
       setIzinData((prevData) =>
         prevData.map((item) =>
-          item.idPerizinan === idPerizinan ? updatedPerizinan : item
+          item.idPerizinan === idPerizinan ? { ...item, status } : item
         )
       );
 
