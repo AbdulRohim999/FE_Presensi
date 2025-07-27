@@ -467,13 +467,18 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-base text-gray-700 font-semibold mb-1">
-                        {serverDate}
+                        {serverDate || "Memuat tanggal..."}
                       </div>
                       <div className="text-4xl font-bold">
-                        {formatTime(currentTime)}
+                        {currentTime
+                          ? formatTime(currentTime)
+                          : "Server tidak tersedia"}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         WIB (Waktu Indonesia Barat)
+                      </div>
+                      <div className="text-xs text-red-500 mt-1">
+                        {!currentTime && "Menghubungkan ke server..."}
                       </div>
                     </div>
                     <Dialog open={open} onOpenChange={setOpen}>

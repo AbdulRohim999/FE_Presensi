@@ -1270,9 +1270,43 @@ export async function getServerTimeWIB(): Promise<ServerTimeWIBResponse> {
 export async function getServerTimeWIBAsDate(): Promise<Date> {
   try {
     const wibData = await getServerTimeWIB();
-    // Gabungkan date dan time untuk membuat Date object
-    const dateTimeString = `${wibData.date} ${wibData.time}`;
-    return new Date(dateTimeString);
+    // Ubah "27 July 2025" ke "2025-07-27"
+    const [day, monthStr, year] = wibData.date.split(" ");
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+    let monthIdx = monthNames.findIndex(
+      (m) => m.toLowerCase() === monthStr.toLowerCase()
+    );
+    if (monthIdx > 11) monthIdx -= 12; // handle Indonesia month
+    const month = ("0" + (monthIdx + 1)).slice(-2);
+    const isoString = `${year}-${month}-${("0" + day).slice(-2)}T${
+      wibData.time
+    }+07:00`;
+    return new Date(isoString);
   } catch (error) {
     console.error("Error fetching server time WIB:", error);
     throw new Error("Gagal mengambil waktu server WIB");
