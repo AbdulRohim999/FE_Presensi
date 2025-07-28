@@ -24,16 +24,58 @@ export default function LoginPage() {
     password: "",
   });
 
+  // Tambahkan state untuk error validation
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+  });
+
   // Tambahkan state untuk showPassword di komponen
   const [showPassword, setShowPassword] = useState(false);
 
-  // Tambahkan handler untuk input changes
+  // Fungsi validasi email
+  const validateEmail = (email: string) => {
+    if (!email.trim()) {
+      return "Email tidak boleh kosong";
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Format email tidak valid";
+    }
+    return "";
+  };
+
+  // Fungsi validasi password
+  const validatePassword = (password: string) => {
+    if (!password.trim()) {
+      return "Password tidak boleh kosong";
+    }
+    if (password.length < 6) {
+      return "Password minimal 6 karakter";
+    }
+    return "";
+  };
+
+  // Tambahkan handler untuk input changes dengan validasi real-time
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    // Validasi real-time
+    if (name === "email") {
+      setErrors((prev) => ({
+        ...prev,
+        email: validateEmail(value),
+      }));
+    } else if (name === "password") {
+      setErrors((prev) => ({
+        ...prev,
+        password: validatePassword(value),
+      }));
+    }
   };
 
   // Di dalam handleLogin function
@@ -41,33 +83,20 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Validasi form
-    if (!formData.email.trim()) {
-      toast({
-        title: "Email Kosong",
-        description: "Silakan masukkan email Anda",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
+    // Validasi form sebelum submit
+    const emailError = validateEmail(formData.email);
+    const passwordError = validatePassword(formData.password);
 
-    if (!formData.password.trim()) {
-      toast({
-        title: "Password Kosong",
-        description: "Silakan masukkan password Anda",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
+    setErrors({
+      email: emailError,
+      password: passwordError,
+    });
 
-    // Validasi format email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    // Jika ada error, hentikan proses login
+    if (emailError || passwordError) {
       toast({
-        title: "Format Email Salah",
-        description: "Silakan masukkan format email yang benar",
+        title: "Data Tidak Valid",
+        description: "Silakan perbaiki data yang dimasukkan",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -123,28 +152,58 @@ export default function LoginPage() {
     } catch (error: unknown) {
       console.error("Login error:", error);
 
-      // Handle berbagai jenis error
+      // Handle berbagai jenis error dengan lebih spesifik
+      let errorTitle = "Login Gagal";
       let errorMessage = "Terjadi kesalahan saat login";
 
       if (error && typeof error === "object" && "response" in error) {
-        const errorResponse = error as { response?: { status?: number } };
-        if (errorResponse.response?.status === 401) {
-          errorMessage = "Email atau password salah";
-        } else if (errorResponse.response?.status === 404) {
-          errorMessage = "Email tidak ditemukan";
-        } else if (errorResponse.response?.status === 422) {
-          errorMessage = "Data yang dimasukkan tidak valid";
-        } else if (errorResponse.response?.status === 500) {
-          errorMessage = "Terjadi kesalahan pada server";
+        const errorResponse = error as {
+          response?: {
+            status?: number;
+            data?: { message?: string };
+          };
+        };
+
+        const status = errorResponse.response?.status;
+        const serverMessage = errorResponse.response?.data?.message;
+
+        switch (status) {
+          case 400:
+            errorTitle = "Data Tidak Valid";
+            errorMessage = serverMessage || "Email atau password tidak valid";
+            break;
+          case 401:
+            errorTitle = "Autentikasi Gagal";
+            errorMessage = "Email atau password salah";
+            break;
+          case 404:
+            errorTitle = "Email Tidak Ditemukan";
+            errorMessage = "Email yang Anda masukkan tidak terdaftar";
+            break;
+          case 422:
+            errorTitle = "Data Tidak Valid";
+            errorMessage =
+              serverMessage || "Format data yang dimasukkan tidak valid";
+            break;
+          case 500:
+            errorTitle = "Server Error";
+            errorMessage =
+              "Terjadi kesalahan pada server, silakan coba lagi nanti";
+            break;
+          default:
+            errorTitle = "Login Gagal";
+            errorMessage = serverMessage || "Terjadi kesalahan tidak diketahui";
         }
       } else if (error instanceof Error) {
+        errorTitle = "Error";
         errorMessage = error.message;
       } else if (typeof error === "string") {
+        errorTitle = "Error";
         errorMessage = error;
       }
 
       toast({
-        title: "Login Gagal",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
@@ -201,11 +260,16 @@ export default function LoginPage() {
                 type="email"
                 name="email"
                 placeholder="Email"
-                className="pr-10 rounded-full"
+                className={`pr-10 rounded-full ${
+                  errors.email ? "border-red-500 focus:border-red-500" : ""
+                }`}
                 value={formData.email}
                 onChange={handleInputChange}
               />
               <Mail className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1 ml-2">{errors.email}</p>
+              )}
             </div>
 
             <div className="relative">
@@ -213,7 +277,9 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Kata Sandi"
-                className="pr-10 rounded-full"
+                className={`pr-10 rounded-full ${
+                  errors.password ? "border-red-500 focus:border-red-500" : ""
+                }`}
                 value={formData.password}
                 onChange={handleInputChange}
               />
@@ -229,6 +295,11 @@ export default function LoginPage() {
                   }`}
                 />
               </button>
+              {errors.password && (
+                <p className="text-red-500 text-xs mt-1 ml-2">
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
