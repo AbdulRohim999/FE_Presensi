@@ -41,6 +41,39 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Validasi form
+    if (!formData.email.trim()) {
+      toast({
+        title: "Email Kosong",
+        description: "Silakan masukkan email Anda",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.password.trim()) {
+      toast({
+        title: "Password Kosong",
+        description: "Silakan masukkan password Anda",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Validasi format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Format Email Salah",
+        description: "Silakan masukkan format email yang benar",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await login(formData);
 
@@ -87,14 +120,32 @@ export default function LoginPage() {
             return;
         }
       }, 1000);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
+
+      // Handle berbagai jenis error
+      let errorMessage = "Terjadi kesalahan saat login";
+
+      if (error && typeof error === "object" && "response" in error) {
+        const errorResponse = error as { response?: { status?: number } };
+        if (errorResponse.response?.status === 401) {
+          errorMessage = "Email atau password salah";
+        } else if (errorResponse.response?.status === 404) {
+          errorMessage = "Email tidak ditemukan";
+        } else if (errorResponse.response?.status === 422) {
+          errorMessage = "Data yang dimasukkan tidak valid";
+        } else if (errorResponse.response?.status === 500) {
+          errorMessage = "Terjadi kesalahan pada server";
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
       toast({
         title: "Login Gagal",
-        description:
-          error instanceof Error && error.message
-            ? error.message
-            : "Email atau password salah atau terjadi kesalahan.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

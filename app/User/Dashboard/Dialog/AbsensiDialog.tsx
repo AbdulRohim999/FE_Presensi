@@ -3,16 +3,30 @@
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { doAbsensi, getServerTimeWIBAsDate } from "@/lib/api";
+import {
+  doAbsensi,
+  getAbsensiHariIni,
+  getServerTimeWIBAsDate,
+} from "@/lib/api";
 import { Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+interface AbsensiHariIni {
+  absenPagi: string | null;
+  absenSiang: string | null;
+  absenSore: string | null;
+  status: string;
+}
 
 export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
   const { token } = useAuth();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isLoading, setIsLoading] = useState<"pagi" | "siang" | "sore" | null>(
+    null
+  );
+  const [absensiHariIni, setAbsensiHariIni] = useState<AbsensiHariIni | null>(
     null
   );
 
@@ -38,6 +52,23 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+  }, [token]);
+
+  // Fetch data absensi hari ini
+  const fetchAbsensiHariIni = async () => {
+    if (!token) return;
+
+    try {
+      const data = await getAbsensiHariIni(token);
+      setAbsensiHariIni(data);
+    } catch (error) {
+      console.error("Error fetching absensi hari ini:", error);
+    }
+  };
+
+  // Fetch absensi hari ini saat komponen mount
+  useEffect(() => {
+    fetchAbsensiHariIni();
   }, [token]);
 
   // Function to check if current time is within a specific range
@@ -80,6 +111,11 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
   const isEveningActive = currentTime
     ? !isSaturday && isWithinTimeRange(16, 0, 21, 0)
     : false;
+
+  // Check if absensi sudah dilakukan
+  const isPagiDone = !!absensiHariIni?.absenPagi;
+  const isSiangDone = !!absensiHariIni?.absenSiang;
+  const isSoreDone = !!absensiHariIni?.absenSore;
 
   const handleAbsensi = async (tipeAbsen: "pagi" | "siang" | "sore") => {
     if (!token) {
@@ -125,6 +161,10 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
             : "-"
         } (WIB)`
       );
+
+      // Refresh data absensi setelah berhasil
+      await fetchAbsensiHariIni();
+
       if (onClose) {
         setTimeout(() => {
           onClose();
@@ -171,28 +211,56 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Button
             onClick={() => handleAbsensi("pagi")}
-            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
-            variant={isMorningActive ? "default" : "secondary"}
-            disabled={!isMorningActive || isLoading === "pagi"}
+            className={`flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F] ${
+              isPagiDone ? "bg-gray-400 text-gray-600 cursor-not-allowed" : ""
+            }`}
+            variant={
+              isPagiDone
+                ? "secondary"
+                : isMorningActive
+                ? "default"
+                : "secondary"
+            }
+            disabled={!isMorningActive || isLoading === "pagi" || isPagiDone}
           >
             <Sun className="h-6 w-6" />
             <span>Absen Pagi</span>
             <span className="text-xs">07:30 - 11:40</span>
+            {isPagiDone && (
+              <span className="text-xs text-green-600 font-medium">
+                Sudah Absen
+              </span>
+            )}
             {isLoading === "pagi" && (
               <span className="text-xs">Loading...</span>
             )}
           </Button>
           <Button
             onClick={() => handleAbsensi("siang")}
-            className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
-            variant={isAfternoonActive ? "default" : "secondary"}
-            disabled={!isAfternoonActive || isLoading === "siang"}
+            className={`flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F] ${
+              isSiangDone ? "bg-gray-400 text-gray-600 cursor-not-allowed" : ""
+            }`}
+            variant={
+              isSiangDone
+                ? "secondary"
+                : isAfternoonActive
+                ? "default"
+                : "secondary"
+            }
+            disabled={
+              !isAfternoonActive || isLoading === "siang" || isSiangDone
+            }
           >
             <Clock className="h-6 w-6" />
             <span>Absen Siang</span>
             <span className="text-xs">
               {isSaturday ? "13:00 - 21:00" : "12:00 - 15:40"}
             </span>
+            {isSiangDone && (
+              <span className="text-xs text-green-600 font-medium">
+                Sudah Absen
+              </span>
+            )}
             {isLoading === "siang" && (
               <span className="text-xs">Loading...</span>
             )}
@@ -200,13 +268,26 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
           {!isSaturday && (
             <Button
               onClick={() => handleAbsensi("sore")}
-              className="flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F]"
-              variant={isEveningActive ? "default" : "secondary"}
-              disabled={!isEveningActive || isLoading === "sore"}
+              className={`flex min-h-[100px] w-full flex-col items-center justify-center gap-1 py-8 px-6 border-2 border-[#558B2F] ${
+                isSoreDone ? "bg-gray-400 text-gray-600 cursor-not-allowed" : ""
+              }`}
+              variant={
+                isSoreDone
+                  ? "secondary"
+                  : isEveningActive
+                  ? "default"
+                  : "secondary"
+              }
+              disabled={!isEveningActive || isLoading === "sore" || isSoreDone}
             >
               <Sunset className="h-6 w-6" />
               <span>Absen Sore</span>
               <span className="text-xs">16:00 - 21:00</span>
+              {isSoreDone && (
+                <span className="text-xs text-green-600 font-medium">
+                  Sudah Absen
+                </span>
+              )}
               {isLoading === "sore" && (
                 <span className="text-xs">Loading...</span>
               )}
