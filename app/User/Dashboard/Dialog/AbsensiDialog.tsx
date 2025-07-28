@@ -8,7 +8,7 @@ import { Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-export default function AbsensiDialog() {
+export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
   const { token } = useAuth();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,17 +66,23 @@ export default function AbsensiDialog() {
 
   // Check if each absensi time is active
   const isSaturday = currentTime ? currentTime.getDay() === 6 : false; // 6 adalah hari Sabtu
-  const isMorningActive = currentTime ? isWithinTimeRange(7, 30, 8, 15) : false; // Aktif sampai 10:15
-  // Untuk Sabtu, absen siang 13:00-15:59, selain itu 12:00-13:30
+
+  // Pagi: 07:30 - 11:40 (Senin-Sabtu)
+  const isMorningActive = currentTime
+    ? isWithinTimeRange(7, 30, 11, 40)
+    : false;
+
+  // Siang: Senin-Jumat 12:00-15:40, Sabtu 13:00-21:00
   const isAfternoonActive = currentTime
     ? isSaturday
-      ? isWithinTimeRange(13, 0, 15, 59)
-      : isWithinTimeRange(12, 0, 13, 30)
-    : false; // Senin-Jumat: 12:00-13:30
-  // Untuk Sabtu, tidak ada absen sore
+      ? isWithinTimeRange(13, 0, 21, 0)
+      : isWithinTimeRange(12, 0, 15, 40)
+    : false;
+
+  // Sore: Hanya Senin-Jumat 16:00-21:00
   const isEveningActive = currentTime
     ? !isSaturday && isWithinTimeRange(16, 0, 21, 0)
-    : false; // Aktif sampai 23:00, dinonaktifkan di hari Sabtu
+    : false;
 
   const handleAbsensi = async (tipeAbsen: "pagi" | "siang" | "sore") => {
     if (!token) {
@@ -99,7 +105,11 @@ export default function AbsensiDialog() {
     }
 
     if (!isValidTime) {
-      toast.error(`Waktu absen ${tipeAbsen} tidak valid`);
+      toast("Waktu absensi tidak valid", {
+        description: `Anda tidak dapat absen ${tipeAbsen} di luar jam yang ditentukan`,
+        action: { label: "Tutup", onClick: () => {} },
+        style: { background: "#fffbe6", color: "#ad8b00" },
+      });
       return;
     }
 
@@ -118,13 +128,22 @@ export default function AbsensiDialog() {
             : "-"
         } (WIB)`
       );
-      // Refresh data absensi jika diperlukan
+      if (onClose) {
+        setTimeout(() => {
+          onClose();
+        }, 1000); // beri jeda 1 detik agar user lihat alert
+      }
     } catch (error) {
-      console.error(`Error melakukan absensi ${tipeAbsen}:`, error);
       if (error instanceof Error) {
         toast.error(error.message);
+      } else if (typeof error === "string") {
+        toast.error(error);
       } else {
-        toast.error(`Gagal melakukan absensi ${tipeAbsen}`);
+        toast("Gagal melakukan absensi", {
+          description: `Terjadi kesalahan tidak diketahui saat absen ${tipeAbsen}`,
+          action: { label: "Tutup", onClick: () => {} },
+          style: { background: "#fff1f0", color: "#cf1322" },
+        });
       }
     } finally {
       setIsLoading(null);
@@ -161,7 +180,7 @@ export default function AbsensiDialog() {
           >
             <Sun className="h-6 w-6" />
             <span>Absen Pagi</span>
-            <span className="text-xs">07:30 - 08:15</span>
+            <span className="text-xs">07:30 - 11:40</span>
             {isLoading === "pagi" && (
               <span className="text-xs">Loading...</span>
             )}
@@ -175,7 +194,7 @@ export default function AbsensiDialog() {
             <Clock className="h-6 w-6" />
             <span>Absen Siang</span>
             <span className="text-xs">
-              {isSaturday ? "13:00 - 15:59" : "12:00 - 13:30"}
+              {isSaturday ? "13:00 - 21:00" : "12:00 - 15:40"}
             </span>
             {isLoading === "siang" && (
               <span className="text-xs">Loading...</span>
