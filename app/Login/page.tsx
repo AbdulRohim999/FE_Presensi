@@ -58,33 +58,43 @@ export default function LoginPage() {
         localStorage.setItem("loginSuccess", "true");
       }
 
-      // Arahkan ke dashboard sesuai role
-      switch (response.role) {
-        case "super_admin":
-          router.push("/SuperAdmin/Dashboard");
-          break;
-        case "admin":
-          router.push("/Admin/Dashboard");
-          break;
-        case "user":
-          router.push("/User/Dashboard");
-          break;
-        default:
-          console.error("Role tidak valid:", response.role);
-          toast({
-            title: "Error",
-            description: "Role tidak valid",
-            variant: "destructive",
-          });
-          return;
-      }
+      // Tampilkan toast sukses
+      toast({
+        title: "Login Berhasil",
+        description: `Selamat datang, ${response.firstname} ${response.lastname}!`,
+        variant: "default",
+      });
 
-      // Jangan tampilkan toast di sini, biar di dashboard saja
+      // Delay 1 detik sebelum redirect agar toast terlihat
+      setTimeout(() => {
+        switch (response.role) {
+          case "super_admin":
+            router.push("/SuperAdmin/Dashboard");
+            break;
+          case "admin":
+            router.push("/Admin/Dashboard");
+            break;
+          case "user":
+            router.push("/User/Dashboard");
+            break;
+          default:
+            console.error("Role tidak valid:", response.role);
+            toast({
+              title: "Error",
+              description: "Role tidak valid",
+              variant: "destructive",
+            });
+            return;
+        }
+      }, 1000);
     } catch (error) {
       console.error("Login error:", error);
       toast({
         title: "Login Gagal",
-        description: "Email atau password salah",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "Email atau password salah atau terjadi kesalahan.",
         variant: "destructive",
       });
     } finally {
