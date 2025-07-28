@@ -54,7 +54,6 @@ export default function AttendanceReport() {
   const router = useRouter();
   const { token } = useAuth();
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [tipeUserFilter, setTipeUserFilter] = useState<string>("all");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [date, setDate] = useState<DateRange | undefined>();
@@ -208,9 +207,7 @@ export default function AttendanceReport() {
   const filteredData = users.filter((record) => {
     const fullName = record.namaUser.toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase());
-    const matchesTipeUser =
-      tipeUserFilter === "all" || record.tipeUser === tipeUserFilter;
-    return matchesSearch && matchesTipeUser;
+    return matchesSearch;
   });
 
   const handleUserClick = (userId: number) => {
@@ -229,24 +226,13 @@ export default function AttendanceReport() {
       const tableData = filteredData.map((record, idx) => [
         idx + 1,
         record.namaUser,
-        record.tipeUser || "-",
         record.bidangKerja || "-",
         record.validCount.toString(),
         record.invalidCount.toString(),
         record.totalCount.toString(),
       ]);
       autoTable(doc, {
-        head: [
-          [
-            "No",
-            "Nama",
-            "Tipe User",
-            "Bidang Kerja",
-            "Valid",
-            "Invalid",
-            "Total",
-          ],
-        ],
+        head: [["No", "Nama", "Bidang Kerja", "Valid", "Invalid", "Total"]],
         body: tableData,
         startY: 50,
       });
@@ -264,7 +250,6 @@ export default function AttendanceReport() {
       const excelData = filteredData.map((record, idx) => ({
         No: idx + 1,
         Nama: record.namaUser,
-        "Tipe User": record.tipeUser || "-",
         "Bidang Kerja": record.bidangKerja || "-",
         Valid: record.validCount,
         Invalid: record.invalidCount,
@@ -306,13 +291,11 @@ export default function AttendanceReport() {
                   new Paragraph({
                     children: [
                       new TextRun(
-                        `${idx + 1}. ${record.namaUser} | Tipe: ${
-                          record.tipeUser || "-"
-                        } | Bidang: ${record.bidangKerja || "-"} | Valid: ${
-                          record.validCount
-                        } | Invalid: ${record.invalidCount} | Total: ${
-                          record.totalCount
-                        }`
+                        `${idx + 1}. ${record.namaUser} | Bidang: ${
+                          record.bidangKerja || "-"
+                        } | Valid: ${record.validCount} | Invalid: ${
+                          record.invalidCount
+                        } | Total: ${record.totalCount}`
                       ),
                     ],
                   })
@@ -375,20 +358,6 @@ export default function AttendanceReport() {
                       <Search className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
-                  {/* Tipe User Filter */}
-                  <Select
-                    value={tipeUserFilter}
-                    onValueChange={setTipeUserFilter}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter Tipe User" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Tipe User</SelectItem>
-                      <SelectItem value="Dosen">Dosen</SelectItem>
-                      <SelectItem value="Karyawan">Karyawan</SelectItem>
-                    </SelectContent>
-                  </Select>
                   {/* Button Unduh Laporan */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -489,7 +458,6 @@ export default function AttendanceReport() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama</TableHead>
-                    <TableHead>Tipe User</TableHead>
                     <TableHead>Bidang Kerja</TableHead>
                     <TableHead className="text-center">Valid</TableHead>
                     <TableHead className="text-center">Invalid</TableHead>
@@ -499,7 +467,7 @@ export default function AttendanceReport() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">
+                      <TableCell colSpan={5} className="text-center py-4">
                         Memuat data...
                       </TableCell>
                     </TableRow>
@@ -512,17 +480,6 @@ export default function AttendanceReport() {
                       >
                         <TableCell className="font-medium">
                           {record.namaUser}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              record.tipeUser === "Dosen"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {record.tipeUser || "-"}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <span className="text-slate-600">
@@ -548,7 +505,7 @@ export default function AttendanceReport() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">
+                      <TableCell colSpan={5} className="text-center py-4">
                         Tidak ada data yang sesuai dengan pencarian
                       </TableCell>
                     </TableRow>
@@ -558,7 +515,7 @@ export default function AttendanceReport() {
                   <tfoot>
                     <TableRow className="bg-slate-100 dark:bg-slate-800 font-semibold">
                       <TableCell
-                        colSpan={3}
+                        colSpan={2}
                         className="text-right font-bold pr-4"
                       >
                         Persentase Kehadiran
