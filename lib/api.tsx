@@ -231,6 +231,17 @@ interface LaporanMingguan {
   fotoProfile?: string | null;
 }
 
+// Interface untuk response laporan bulanan admin
+interface LaporanBulananAdmin {
+  idUser: number;
+  namaUser: string;
+  bidangKerja: string;
+  periode: string;
+  valid: number;
+  invalid: number;
+  total: number;
+}
+
 // Interface untuk response laporan bulanan
 interface LaporanBulanan {
   idUser: number;
@@ -971,6 +982,31 @@ export const getJumlahStatusKehadiranPeriode = async (
         params: {
           startDate: params.startDate,
           endDate: params.endDate,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Fungsi untuk mendapatkan laporan bulanan admin
+export const getLaporanBulananAdmin = async (
+  token: string,
+  month: number,
+  year: number
+): Promise<LaporanBulananAdmin[]> => {
+  try {
+    const response = await apiClient.get(
+      `${BASE_URL}/api/admin/kehadiran/laporan/user/bulan`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          month: month.toString().padStart(2, "0"),
+          year: year.toString(),
         },
       }
     );

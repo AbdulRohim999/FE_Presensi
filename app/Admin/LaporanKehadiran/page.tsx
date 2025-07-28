@@ -26,7 +26,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
-import { getJumlahStatusKehadiranPeriode } from "@/lib/api";
+import {
+  getJumlahStatusKehadiranPeriode,
+  getLaporanBulananAdmin,
+} from "@/lib/api";
 import {
   AlignmentType,
   Document,
@@ -76,6 +79,9 @@ export default function AttendanceReport() {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     (new Date().getMonth() + 1).toString()
   );
+  const [selectedYear, setSelectedYear] = useState<string>(
+    new Date().getFullYear().toString()
+  );
 
   // Fungsi untuk mendapatkan nama bulan
   const getMonthName = (month: string) => {
@@ -113,20 +119,12 @@ export default function AttendanceReport() {
       const endDate = date.to ? formatDate(date.to) : startDate;
       filterDescription = `pada ${startDate} hingga ${endDate}`;
     } else if (selectedMonth !== "all") {
-      filterDescription = `Bulan ${getMonthName(selectedMonth)}`;
+      filterDescription = `Bulan ${getMonthName(
+        selectedMonth
+      )} ${selectedYear}`;
     }
 
     return `${description}${filterDescription ? ` ${filterDescription}` : ""}`;
-  };
-
-  // Fungsi untuk mendapatkan tanggal awal dan akhir bulan
-  const getMonthRange = (month: number, year: number) => {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-    return {
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
-    };
   };
 
   const fetchUsers = async () => {
@@ -145,15 +143,26 @@ export default function AttendanceReport() {
         };
         data = await getJumlahStatusKehadiranPeriode(token, params);
       } else if (selectedMonth !== "all") {
-        const currentYear = new Date().getFullYear();
-        const { startDate, endDate } = getMonthRange(
+        // Gunakan endpoint laporan bulanan admin
+        data = await getLaporanBulananAdmin(
+          token,
           Number.parseInt(selectedMonth),
-          currentYear
+          Number.parseInt(selectedYear)
         );
-        data = await getJumlahStatusKehadiranPeriode(token, {
-          startDate,
-          endDate,
-        });
+
+        // Transform data dari format LaporanBulananAdmin ke format User
+        if (Array.isArray(data)) {
+          data = data.map((item) => ({
+            idUser: item.idUser,
+            namaUser: item.namaUser,
+            tipeUser: null, // Tidak ada di response, bisa ditambahkan nanti
+            role: "", // Tidak ada di response, bisa ditambahkan nanti
+            bidangKerja: item.bidangKerja,
+            validCount: item.valid,
+            invalidCount: item.invalid,
+            totalCount: item.total,
+          }));
+        }
       } else {
         const currentYear = new Date().getFullYear();
         const startDate = `${currentYear}-01-01`;
@@ -182,7 +191,7 @@ export default function AttendanceReport() {
 
   useEffect(() => {
     fetchUsers();
-  }, [token, date, selectedMonth]);
+  }, [token, date, selectedMonth, selectedYear]);
 
   // Filter data berdasarkan pencarian dan tipe user
   const filteredData = users.filter((record) => {
@@ -756,6 +765,24 @@ export default function AttendanceReport() {
                       <SelectItem value="10">Oktober</SelectItem>
                       <SelectItem value="11">November</SelectItem>
                       <SelectItem value="12">Desember</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Filter Tahun */}
+                  <Select
+                    value={selectedYear}
+                    onValueChange={(value) => {
+                      setSelectedYear(value);
+                      setDate(undefined); // Reset date range ketika tahun dipilih
+                    }}
+                  >
+                    <SelectTrigger className="w-[196px]">
+                      <SelectValue placeholder="Filter Tahun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2023">2023</SelectItem>
+                      <SelectItem value="2024">2024</SelectItem>
+                      <SelectItem value="2025">2025</SelectItem>
                     </SelectContent>
                   </Select>
 

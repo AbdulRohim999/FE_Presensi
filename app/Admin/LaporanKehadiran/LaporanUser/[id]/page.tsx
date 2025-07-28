@@ -68,7 +68,8 @@ const formatTime = (timeString: string | null) => {
     const minutes = date.getMinutes().toString().padStart(2, "0");
     const seconds = date.getSeconds().toString().padStart(2, "0");
     return `${hours}:${minutes}:${seconds}`;
-  } catch {
+  } catch (error) {
+    console.error("Error formatting time:", error);
     return "-";
   }
 };
@@ -139,7 +140,7 @@ export default function UserAttendanceReport({
   );
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
-  // Fungsi untuk mengecek dan mengubah status berdasarkan logika baru
+  // Fungsi untuk mengecek dan mengubah status berdasarkan logika yang benar
   const checkAndUpdateStatus = (record: KehadiranUser) => {
     const today = new Date();
     const recordDate = new Date(record.tanggalAbsensi);
@@ -193,12 +194,14 @@ export default function UserAttendanceReport({
         "18:00"
       );
 
+      // Sabtu: harus ada 2 absensi (pagi & siang) dan keduanya tepat waktu
       if (absenPagiDone && absenSiangDone && isPagiValid && isSiangValidSabtu) {
         return "Valid";
       } else {
         return "Invalid";
       }
     } else {
+      // Hari biasa: harus ada 3 absensi (pagi, siang, sore) dan semuanya tepat waktu
       if (
         absenPagiDone &&
         absenSiangDone &&
