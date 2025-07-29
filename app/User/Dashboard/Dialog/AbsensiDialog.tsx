@@ -97,14 +97,14 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
 
   // Pagi: 07:30 - 11:40 (Senin-Sabtu)
   const isMorningActive = currentTime
-    ? isWithinTimeRange(7, 30, 11, 40)
+    ? isWithinTimeRange(7, 30, 11, 50)
     : false;
 
   // Siang: Senin-Jumat 12:00-15:40, Sabtu 13:00-21:00
   const isAfternoonActive = currentTime
     ? isSaturday
       ? isWithinTimeRange(13, 0, 21, 0)
-      : isWithinTimeRange(12, 0, 15, 40)
+      : isWithinTimeRange(12, 0, 15, 50)
     : false;
 
   // Sore: Hanya Senin-Jumat 16:00-21:00
@@ -225,7 +225,7 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
           >
             <Sun className="h-6 w-6" />
             <span>Absen Pagi</span>
-            <span className="text-xs">07:30 - 11:40</span>
+            <span className="text-xs">07:30 - 08:15</span>
             {isPagiDone && (
               <span className="text-xs text-green-600 font-medium">
                 Sudah Absen
@@ -254,7 +254,7 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
             <Clock className="h-6 w-6" />
             <span>Absen Siang</span>
             <span className="text-xs">
-              {isSaturday ? "13:00 - 21:00" : "12:00 - 15:40"}
+              {isSaturday ? "13:00 - 21:00" : "12:00 - 13:30"}
             </span>
             {isSiangDone && (
               <span className="text-xs text-green-600 font-medium">

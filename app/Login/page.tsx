@@ -1,12 +1,21 @@
 "use client";
 
 import { ModeToggle } from "@/components/mode-toggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { login } from "@/lib/api";
-import { Eye, Mail } from "lucide-react";
+import { AlertCircle, Eye, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,6 +37,13 @@ export default function LoginPage() {
   const [errors, setErrors] = useState({
     email: "",
     password: "",
+  });
+
+  // Tambahkan state untuk alert dialog
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertData, setAlertData] = useState({
+    title: "",
+    message: "",
   });
 
   // Tambahkan state untuk showPassword di komponen
@@ -94,11 +110,11 @@ export default function LoginPage() {
 
     // Jika ada error, hentikan proses login
     if (emailError || passwordError) {
-      toast({
+      setAlertData({
         title: "Data Tidak Valid",
-        description: "Silakan perbaiki data yang dimasukkan",
-        variant: "destructive",
+        message: "Silakan perbaiki data yang dimasukkan sebelum melanjutkan.",
       });
+      setShowAlert(true);
       setIsLoading(false);
       return;
     }
@@ -141,18 +157,18 @@ export default function LoginPage() {
             break;
           default:
             console.error("Role tidak valid:", response.role);
-            toast({
+            setAlertData({
               title: "Error",
-              description: "Role tidak valid",
-              variant: "destructive",
+              message: "Role tidak valid, silakan hubungi administrator.",
             });
+            setShowAlert(true);
             return;
         }
       }, 1000);
     } catch (error: unknown) {
       console.error("Login error:", error);
 
-      // Handle berbagai jenis error dengan lebih spesifik
+      // Handle berbagai jenis error dengan alert dialog
       let errorTitle = "Login Gagal";
       let errorMessage = "Terjadi kesalahan saat login";
 
@@ -170,29 +186,36 @@ export default function LoginPage() {
         switch (status) {
           case 400:
             errorTitle = "Data Tidak Valid";
-            errorMessage = serverMessage || "Email atau password tidak valid";
+            errorMessage =
+              serverMessage ||
+              "Email atau password yang Anda masukkan tidak valid. Silakan cek kembali.";
             break;
           case 401:
             errorTitle = "Autentikasi Gagal";
-            errorMessage = "Email atau password salah";
+            errorMessage =
+              "Email atau password yang Anda masukkan salah. Silakan cek kembali email dan password Anda.";
             break;
           case 404:
             errorTitle = "Email Tidak Ditemukan";
-            errorMessage = "Email yang Anda masukkan tidak terdaftar";
+            errorMessage =
+              "Email yang Anda masukkan tidak terdaftar dalam sistem. Silakan cek kembali atau hubungi administrator.";
             break;
           case 422:
             errorTitle = "Data Tidak Valid";
             errorMessage =
-              serverMessage || "Format data yang dimasukkan tidak valid";
+              serverMessage ||
+              "Format data yang dimasukkan tidak valid. Silakan cek kembali.";
             break;
           case 500:
             errorTitle = "Server Error";
             errorMessage =
-              "Terjadi kesalahan pada server, silakan coba lagi nanti";
+              "Terjadi kesalahan pada server. Silakan coba lagi nanti atau hubungi administrator.";
             break;
           default:
             errorTitle = "Login Gagal";
-            errorMessage = serverMessage || "Terjadi kesalahan tidak diketahui";
+            errorMessage =
+              serverMessage ||
+              "Terjadi kesalahan tidak diketahui. Silakan coba lagi atau hubungi administrator.";
         }
       } else if (error instanceof Error) {
         errorTitle = "Error";
@@ -202,6 +225,14 @@ export default function LoginPage() {
         errorMessage = error;
       }
 
+      // Tampilkan alert dialog untuk error
+      setAlertData({
+        title: errorTitle,
+        message: errorMessage,
+      });
+      setShowAlert(true);
+
+      // Juga tampilkan toast sebagai backup
       toast({
         title: errorTitle,
         description: errorMessage,
@@ -321,6 +352,29 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      {/* Alert Dialog untuk Error Login */}
+      <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              {alertData.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {alertData.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setShowAlert(false)}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Tutup
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
