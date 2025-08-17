@@ -41,12 +41,33 @@ export function DeleteUserDialog({
 
     setIsLoading(true);
 
+    // Trigger loading popup
+    window.dispatchEvent(
+      new CustomEvent("userAction", {
+        detail: { action: "Menghapus User", type: "start" },
+      })
+    );
+
     try {
       await deleteUser(token, userId);
-      toast.success("User berhasil dihapus");
-      onSuccess(); 
+
+      // Trigger success popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Menghapus User", type: "success" },
+        })
+      );
+
+      onSuccess();
       onOpenChange(false);
     } catch (error) {
+      // Trigger error popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Menghapus User", type: "error" },
+        })
+      );
+
       console.error("Error deleting user:", error);
       toast.error("Gagal menghapus user");
     } finally {

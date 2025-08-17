@@ -86,6 +86,14 @@ export function EditPasswordDialog({
       return;
     }
     setLoading(true);
+
+    // Trigger loading popup
+    window.dispatchEvent(
+      new CustomEvent("userAction", {
+        detail: { action: "Mengubah Password User", type: "start" },
+      })
+    );
+
     try {
       await changeUserPasswordByAdmin(
         token,
@@ -93,10 +101,24 @@ export function EditPasswordDialog({
         newPassword,
         confirmPassword
       );
-      toast.success("Password berhasil diubah");
+
+      // Trigger success popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Mengubah Password User", type: "success" },
+        })
+      );
+
       onOpenChange(false);
       onSubmit(newPassword);
     } catch (err: unknown) {
+      // Trigger error popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Mengubah Password User", type: "error" },
+        })
+      );
+
       if (typeof err === "object" && err !== null && "response" in err) {
         const errorObj = err as { response?: { data?: { message?: string } } };
         toast.error(

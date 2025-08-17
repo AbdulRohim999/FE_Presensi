@@ -89,12 +89,34 @@ export function EditUserDialog({
       return;
     }
     setIsLoading(true);
+
+    // Trigger loading popup
+    window.dispatchEvent(
+      new CustomEvent("userAction", {
+        detail: { action: "Mengubah Data User", type: "start" },
+      })
+    );
+
     try {
       await updateUser(token, user.idUser, formData);
-      toast.success("Data user berhasil diperbarui");
+
+      // Trigger success popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Mengubah Data User", type: "success" },
+        })
+      );
+
       onOpenChange(false);
       onSuccess();
     } catch (error) {
+      // Trigger error popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Mengubah Data User", type: "error" },
+        })
+      );
+
       console.error("Error updating user:", error);
       toast.error("Gagal memperbarui data user");
     } finally {

@@ -78,7 +78,7 @@ export default function KelolaPerizian() {
   });
 
   // Fungsi untuk menampilkan loading popup
-  const showLoading = (_action: string) => {
+  const showLoading = () => {
     setShowLoadingPopup(true);
     setLoadingProgress(0);
 
@@ -178,7 +178,7 @@ export default function KelolaPerizian() {
     setConfirmAction(null);
 
     // Tampilkan loading popup
-    const progressInterval = showLoading(actionText);
+    const progressInterval = showLoading();
 
     try {
       setIsLoading(true);

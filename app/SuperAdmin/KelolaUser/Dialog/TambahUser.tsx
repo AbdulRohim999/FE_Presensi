@@ -42,12 +42,6 @@ export function AddUserDialog() {
     status: "Aktif",
   });
 
-  // Function to refresh parent component data
-  const refreshData = () => {
-    // Trigger a custom event to refresh the parent component
-    window.dispatchEvent(new CustomEvent("refreshUsers"));
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -106,6 +100,13 @@ export function AddUserDialog() {
 
     setIsLoading(true);
 
+    // Trigger loading popup
+    window.dispatchEvent(
+      new CustomEvent("userAction", {
+        detail: { action: "Menambah User", type: "start" },
+      })
+    );
+
     try {
       const userData = {
         firstname: formData.firstname.trim(),
@@ -120,7 +121,14 @@ export function AddUserDialog() {
 
       console.log("Submitting user data:", userData);
       await tambahUser(token, userData);
-      toast.success("User berhasil ditambahkan");
+
+      // Trigger success popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Menambah User", type: "success" },
+        })
+      );
+
       setOpen(false);
       // Reset form
       setFormData({
@@ -133,8 +141,14 @@ export function AddUserDialog() {
         bidangKerja: "",
         status: "Aktif",
       });
-      refreshData(); // Call refreshData after successful addition
     } catch (error) {
+      // Trigger error popup
+      window.dispatchEvent(
+        new CustomEvent("userAction", {
+          detail: { action: "Menambah User", type: "error" },
+        })
+      );
+
       console.error("Error adding user:", error);
       if (error instanceof Error) {
         toast.error(error.message);
