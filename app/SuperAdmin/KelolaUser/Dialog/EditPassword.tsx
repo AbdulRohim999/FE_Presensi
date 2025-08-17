@@ -99,6 +99,12 @@ export function EditPasswordDialog({
     setShowConfirmDialog(false);
     setLoading(true);
 
+    if (!token) {
+      toast.error("Token tidak ditemukan");
+      setLoading(false);
+      return;
+    }
+
     // Trigger loading popup
     window.dispatchEvent(
       new CustomEvent("userAction", {
