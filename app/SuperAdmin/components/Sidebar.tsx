@@ -74,12 +74,12 @@ const menuItems = [
   {
     icon: Users,
     label: "Kelola Data Dosen & Karyawan",
-    href: "/SuperAdmin/KelolaUser",
+    href: "/Admin/KelolaUser",
   },
   {
     icon: FileText,
     label: "Laporan Kehadiran",
-    href: "/SuperAdmin/LaporanKehadiran",
+    href: "/Admin/LaporanKehadiran",
   },
 ];
 
