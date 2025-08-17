@@ -2,6 +2,16 @@
 
 import type React from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,7 +40,7 @@ import { toast } from "sonner";
 export function AddUserDialog() {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -55,8 +65,15 @@ export function AddUserDialog() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fungsi untuk menampilkan dialog konfirmasi
+  const handleShowConfirm = () => {
+    setShowConfirmDialog(true);
+  };
+
+  // Fungsi untuk eksekusi setelah konfirmasi
+  const handleConfirmSubmit = async () => {
+    setShowConfirmDialog(false);
+
     if (!token) {
       toast.error("Token tidak ditemukan");
       return;
@@ -97,8 +114,6 @@ export function AddUserDialog() {
       );
       return;
     }
-
-    setIsLoading(true);
 
     // Trigger loading popup
     window.dispatchEvent(
@@ -155,9 +170,13 @@ export function AddUserDialog() {
       } else {
         toast.error("Gagal menambahkan user");
       }
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Tampilkan dialog konfirmasi
+    handleShowConfirm();
   };
 
   return (
@@ -332,16 +351,33 @@ export function AddUserDialog() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={isLoading}
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Menyimpan..." : "Buat User"}
-            </Button>
+            <Button type="submit">Buat User</Button>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Dialog Konfirmasi */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Tambah User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin menambahkan user ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit}>
+              Ya, Tambah User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

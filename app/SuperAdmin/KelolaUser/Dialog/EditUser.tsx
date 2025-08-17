@@ -2,6 +2,16 @@
 
 import type React from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,7 +67,7 @@ export function EditUserDialog({
   onSuccess,
 }: EditUserDialogProps) {
   const { token } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formData, setFormData] = useState({
     firstname: user.firstname,
     lastname: user.lastname,
@@ -82,13 +92,19 @@ export function EditUserDialog({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fungsi untuk menampilkan dialog konfirmasi
+  const handleShowConfirm = () => {
+    setShowConfirmDialog(true);
+  };
+
+  // Fungsi untuk eksekusi setelah konfirmasi
+  const handleConfirmSubmit = async () => {
+    setShowConfirmDialog(false);
+
     if (!token) {
       toast.error("Token tidak ditemukan");
       return;
     }
-    setIsLoading(true);
 
     // Trigger loading popup
     window.dispatchEvent(
@@ -119,9 +135,13 @@ export function EditUserDialog({
 
       console.error("Error updating user:", error);
       toast.error("Gagal memperbarui data user");
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Tampilkan dialog konfirmasi
+    handleShowConfirm();
   };
 
   return (
@@ -314,23 +334,41 @@ export function EditUserDialog({
               onClick={() => {
                 onOpenChange(false);
               }}
-              disabled={isLoading}
             >
               Batal
             </Button>
             <Button
               type="submit"
-              disabled={isLoading}
               onClick={async (e) => {
                 await handleSubmit(e);
                 onOpenChange(false);
               }}
             >
-              {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
+              Simpan Perubahan
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Dialog Konfirmasi */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Edit User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin mengubah data user ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit}>
+              Ya, Ubah Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

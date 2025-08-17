@@ -1,5 +1,7 @@
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -41,6 +43,7 @@ export function EditPasswordDialog({
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -62,7 +65,8 @@ export function EditPasswordDialog({
     );
   };
 
-  const handleSubmit = async () => {
+  // Fungsi untuk menampilkan dialog konfirmasi
+  const handleShowConfirm = () => {
     if (!newPassword) {
       setError("Password baru tidak boleh kosong.");
       toast.error("Password baru tidak boleh kosong.");
@@ -85,6 +89,14 @@ export function EditPasswordDialog({
       toast.error("Token tidak ditemukan");
       return;
     }
+
+    // Tampilkan dialog konfirmasi
+    setShowConfirmDialog(true);
+  };
+
+  // Fungsi untuk eksekusi setelah konfirmasi
+  const handleConfirmSubmit = async () => {
+    setShowConfirmDialog(false);
     setLoading(true);
 
     // Trigger loading popup
@@ -130,6 +142,11 @@ export function EditPasswordDialog({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    // Tampilkan dialog konfirmasi
+    handleShowConfirm();
   };
 
   return (
@@ -249,6 +266,26 @@ export function EditPasswordDialog({
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
+
+      {/* Dialog Konfirmasi */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Ubah Password</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin mengubah password user ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit}>
+              Ya, Ubah Password
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AlertDialog>
   );
 }

@@ -44,7 +44,7 @@ export function DeleteUserDialog({
     try {
       await deleteUser(token, userId);
       toast.success("User berhasil dihapus");
-      onSuccess(); 
+      onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Error deleting user:", error);

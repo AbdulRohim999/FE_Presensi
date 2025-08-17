@@ -31,15 +31,13 @@ export function DeleteUserDialog({
   onSuccess,
 }: DeleteUserDialogProps) {
   const { token } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleDelete = async () => {
     if (!token) {
       toast.error("Token tidak ditemukan");
       return;
     }
-
-    setIsLoading(true);
 
     // Trigger loading popup
     window.dispatchEvent(
@@ -70,9 +68,18 @@ export function DeleteUserDialog({
 
       console.error("Error deleting user:", error);
       toast.error("Gagal menghapus user");
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  // Fungsi untuk menampilkan dialog konfirmasi
+  const handleShowConfirm = () => {
+    setShowConfirmDialog(true);
+  };
+
+  // Fungsi untuk eksekusi setelah konfirmasi
+  const handleConfirmDelete = async () => {
+    setShowConfirmDialog(false);
+    await handleDelete();
   };
 
   return (
@@ -87,7 +94,7 @@ export function DeleteUserDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
-            disabled={isLoading}
+            disabled={false}
             onClick={() => {
               onOpenChange(false);
             }}
@@ -95,14 +102,36 @@ export function DeleteUserDialog({
             Batal
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
-            disabled={isLoading}
+            onClick={handleShowConfirm}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isLoading ? "Menghapus..." : "Hapus"}
+            Hapus
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
+
+      {/* Dialog Konfirmasi */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin menghapus user ini?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Ya, Hapus User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AlertDialog>
   );
 }
