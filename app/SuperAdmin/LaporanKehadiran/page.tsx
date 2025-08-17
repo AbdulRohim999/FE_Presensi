@@ -1,8 +1,9 @@
 "use client";
 
-import { Navbar } from "@/app/SuperAdmin/components/Navbar";
-import { Sidebar } from "@/app/SuperAdmin/components/Sidebar";
+import { Navbar } from "@/app/Admin/components/Navbar";
+import { Sidebar } from "@/app/Admin/components/Sidebar";
 import { DatePickerWithRange } from "@/components/date-range-picker";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,12 +30,22 @@ import {
   getJumlahStatusKehadiranPeriode,
   getLaporanBulananAdmin,
 } from "@/lib/api";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  AlignmentType,
+  Document,
+  Table as DocxTable,
+  TableCell as DocxTableCell,
+  TableRow as DocxTableRow,
+  Packer,
+  Paragraph,
+  TextRun,
+  WidthType,
+} from "docx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Download, Search, X } from "lucide-react";
+import { Download, FileDown, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -48,6 +59,13 @@ interface User {
   validCount: number;
   invalidCount: number;
   totalCount: number;
+}
+
+// Untuk mendukung doc.lastAutoTable pada TypeScript
+declare module "jspdf" {
+  interface jsPDF {
+    lastAutoTable?: { finalY?: number };
+  }
 }
 
 export default function AttendanceReport() {
@@ -85,7 +103,7 @@ export default function AttendanceReport() {
 
   // Fungsi untuk mendapatkan deskripsi berdasarkan filter
   const getDescription = () => {
-    const description = "Laporan kehadiran dosen dan karyawan STT Payakumbuh";
+    const description = "Laporan Kehadiran Dosen Dan Karyawan STT Payakumbuh";
     let filterDescription = "";
 
     if (date?.from) {
@@ -105,38 +123,7 @@ export default function AttendanceReport() {
       )} ${selectedYear}`;
     }
 
-    return (
-      <>
-        {description}
-        {filterDescription && <br />}
-        {filterDescription}
-      </>
-    );
-  };
-
-  // Fungsi untuk mendapatkan deskripsi dalam bentuk string (untuk ekspor)
-  const getDescriptionText = () => {
-    const description = "Laporan kehadiran dosen dan karyawan STT Payakumbuh";
-    let filterDescription = "";
-
-    if (date?.from) {
-      const formatDate = (date: Date) => {
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = getMonthName((date.getMonth() + 1).toString());
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      };
-
-      const startDate = formatDate(date.from);
-      const endDate = date.to ? formatDate(date.to) : startDate;
-      filterDescription = `pada ${startDate} hingga ${endDate}`;
-    } else if (selectedMonth !== "all") {
-      filterDescription = `Bulan ${getMonthName(selectedMonth)}`;
-    }
-
-    return filterDescription
-      ? `${description} ${filterDescription}`
-      : description;
+    return `${description}${filterDescription ? ` ${filterDescription}` : ""}`;
   };
 
   const fetchUsers = async () => {
@@ -158,8 +145,8 @@ export default function AttendanceReport() {
         // Gunakan endpoint laporan bulanan admin
         data = await getLaporanBulananAdmin(
           token,
-          parseInt(selectedMonth),
-          parseInt(selectedYear)
+          Number.parseInt(selectedMonth),
+          Number.parseInt(selectedYear)
         );
 
         // Transform data dari format LaporanBulananAdmin ke format User
@@ -185,6 +172,8 @@ export default function AttendanceReport() {
         });
       }
 
+      console.log("Data dari API:", data);
+
       if (Array.isArray(data)) {
         setUsers(data);
       } else {
@@ -203,73 +192,351 @@ export default function AttendanceReport() {
     fetchUsers();
   }, [token, date, selectedMonth, selectedYear]);
 
-  // Filter data based on search query and tipe user
+  // Filter data berdasarkan pencarian dan tipe user
   const filteredData = users.filter((record) => {
     const fullName = record.namaUser.toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
+  // Urutkan berdasarkan validCount terbanyak
+  const sortedData = [...filteredData].sort(
+    (a, b) => b.validCount - a.validCount
+  );
+
+  const summary = useMemo(() => {
+    if (sortedData.length === 0) {
+      return {
+        avgValid: 0,
+        avgInvalid: 0,
+        avgTotal: 0,
+        percentValid: 0,
+        percentInvalid: 0,
+      };
+    }
+
+    const totalUsers = sortedData.length;
+    const sumValid = sortedData.reduce((acc, user) => acc + user.validCount, 0);
+    const sumInvalid = sortedData.reduce(
+      (acc, user) => acc + user.invalidCount,
+      0
+    );
+    const sumTotal = sortedData.reduce((acc, user) => acc + user.totalCount, 0);
+
+    return {
+      avgValid: sumValid / totalUsers,
+      avgInvalid: sumInvalid / totalUsers,
+      avgTotal: sumTotal / totalUsers,
+      percentValid: sumTotal > 0 ? (sumValid / sumTotal) * 100 : 0,
+      percentInvalid: sumTotal > 0 ? (sumInvalid / sumTotal) * 100 : 0,
+    };
+  }, [sortedData]);
+
   const handleUserClick = (userId: number) => {
-    router.push(`/SuperAdmin/LaporanKehadiran/LaporanUser/${userId}`);
+    router.push(`/Admin/LaporanKehadiran/LaporanUser/${userId}`);
   };
 
   const handleDownloadPDF = () => {
     try {
       const doc = new jsPDF();
+
+      // Header
       doc.setFontSize(16);
       doc.text("LAPORAN KEHADIRAN", 105, 20, { align: "center" });
       doc.setFontSize(12);
       doc.text("STT Payakumbuh", 105, 30, { align: "center" });
-      doc.text(getDescriptionText(), 105, 40, { align: "center" });
-      // Table
-      const tableData = filteredData.map((record, idx) => [
-        idx + 1,
+      doc.text(getDescription(), 105, 40, { align: "center" });
+
+      // Tanggal cetak
+      const currentDate = new Date().toLocaleDateString("id-ID");
+      doc.setFontSize(10);
+      doc.text(`Dicetak pada: ${currentDate}`, 20, 55);
+
+      // Prepare table data
+      const tableData = sortedData.map((record, index) => [
+        index + 1,
         record.namaUser,
         record.bidangKerja || "-",
         record.validCount.toString(),
         record.invalidCount.toString(),
         record.totalCount.toString(),
       ]);
+
+      // Footer row for average & percentage
+      const footData = [
+        "",
+        "Rata-Rata & Persentase",
+        "",
+        "",
+        `${summary.avgValid.toFixed(1)}\n(${summary.percentValid.toFixed(1)}%)`,
+        `${summary.avgInvalid.toFixed(1)}\n(${summary.percentInvalid.toFixed(
+          1
+        )}%)`,
+        `${summary.avgTotal.toFixed(1)}`,
+      ];
+
+      // Add table
       autoTable(doc, {
         head: [["No", "Nama", "Bidang Kerja", "Valid", "Invalid", "Total"]],
         body: tableData,
-        startY: 50,
+        foot: [footData],
+        startY: 65,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+        footStyles: {
+          fillColor: [230, 230, 230],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+        },
       });
+
+      // Add signature section
+      let y = doc.lastAutoTable?.finalY ?? 75;
+      y += 20;
+      const today = new Date();
+      const tgl = today.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+      doc.setFontSize(11);
+      doc.text(`Payakumbuh, ${tgl}`, 160, y);
+      y += 8;
+      doc.text("Mengetahui,", 160, y);
+      y += 28;
+      doc.text("(Dr. Zulkifli, S.Kom, M.Kom)", 160, y);
+      y += 5;
+      doc.text("____________________________", 150, y);
+
+      // Save the PDF
       doc.save(
         `Laporan_Kehadiran_${new Date().toISOString().split("T")[0]}.pdf`
       );
       toast.success("Laporan PDF berhasil diunduh");
-    } catch {
-      toast.error("Gagal mengunduh PDF");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Gagal mengunduh laporan PDF");
     }
   };
 
   const handleDownloadExcel = () => {
     try {
-      const excelData = filteredData.map((record, idx) => ({
-        No: idx + 1,
+      // Prepare data for Excel
+      const excelData = sortedData.map((record, index) => ({
+        No: index + 1,
         Nama: record.namaUser,
         "Bidang Kerja": record.bidangKerja || "-",
         Valid: record.validCount,
         Invalid: record.invalidCount,
         Total: record.totalCount,
       }));
+
+      // Create workbook and worksheet
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 }, // No
+        { wch: 25 }, // Nama
+        { wch: 20 }, // Bidang Kerja
+        { wch: 8 }, // Valid
+        { wch: 8 }, // Invalid
+        { wch: 8 }, // Total
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add header information
+      XLSX.utils.sheet_add_aoa(
+        ws,
+        [
+          ["LAPORAN KEHADIRAN"],
+          ["STT Payakumbuh"],
+          [getDescription()],
+          [`Dicetak pada: ${new Date().toLocaleDateString("id-ID")}`],
+          [], // Empty row
+        ],
+        { origin: "A1" }
+      );
+
+      // Adjust data starting position
+      XLSX.utils.sheet_add_json(ws, excelData, { origin: "A6" });
+
+      // Add summary row manually after data
+      const summaryRow = [
+        "",
+        "Rata-Rata & Persentase",
+        "",
+        "",
+        `${summary.avgValid.toFixed(1)} (${summary.percentValid.toFixed(1)}%)`,
+        `${summary.avgInvalid.toFixed(1)} (${summary.percentInvalid.toFixed(
+          1
+        )}%)`,
+        `${summary.avgTotal.toFixed(1)}`,
+      ];
+      XLSX.utils.sheet_add_aoa(ws, [summaryRow], {
+        origin: `A${excelData.length + 6}`,
+      });
+
+      // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, "Laporan Kehadiran");
+
+      // Save the file
       XLSX.writeFile(
         wb,
         `Laporan_Kehadiran_${new Date().toISOString().split("T")[0]}.xlsx`
       );
       toast.success("Laporan Excel berhasil diunduh");
-    } catch {
-      toast.error("Gagal mengunduh Excel");
+    } catch (error) {
+      console.error("Error generating Excel:", error);
+      toast.error("Gagal mengunduh laporan Excel");
     }
   };
 
   const handleDownloadWord = async () => {
     try {
+      // Create table rows for Word document
+      const tableRows = [
+        // Header row
+        new DocxTableRow({
+          children: [
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "No", bold: true })],
+                }),
+              ],
+              width: { size: 8, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Nama", bold: true })],
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Bidang Kerja", bold: true })],
+                }),
+              ],
+              width: { size: 20, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Valid", bold: true })],
+                }),
+              ],
+              width: { size: 11, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Invalid", bold: true })],
+                }),
+              ],
+              width: { size: 11, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Total", bold: true })],
+                }),
+              ],
+              width: { size: 10, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        }),
+        // Data rows
+        ...sortedData.map(
+          (record, index) =>
+            new DocxTableRow({
+              children: [
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun((index + 1).toString())],
+                    }),
+                  ],
+                }),
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({ children: [new TextRun(record.namaUser)] }),
+                  ],
+                }),
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun(record.bidangKerja || "-")],
+                    }),
+                  ],
+                }),
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun(record.validCount.toString())],
+                    }),
+                  ],
+                }),
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun(record.invalidCount.toString())],
+                    }),
+                  ],
+                }),
+                new DocxTableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun(record.totalCount.toString())],
+                    }),
+                  ],
+                }),
+              ],
+            })
+        ),
+        // Summary row
+        new DocxTableRow({
+          children: [
+            new DocxTableCell({ children: [new Paragraph("")] }),
+            new DocxTableCell({
+              children: [new Paragraph("Rata-Rata & Persentase")],
+            }),
+            new DocxTableCell({ children: [new Paragraph("")] }),
+            new DocxTableCell({ children: [new Paragraph("")] }),
+            new DocxTableCell({
+              children: [
+                new Paragraph(`${summary.avgValid.toFixed(1)}`),
+                new Paragraph(`(${summary.percentValid.toFixed(1)}%)`),
+              ],
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph(`${summary.avgInvalid.toFixed(1)}`),
+                new Paragraph(`(${summary.percentInvalid.toFixed(1)}%)`),
+              ],
+            }),
+            new DocxTableCell({
+              children: [new Paragraph(`${summary.avgTotal.toFixed(1)}`)],
+            }),
+          ],
+        }),
+      ];
+
+      // Create the document
       const doc = new Document({
         sections: [
           {
@@ -282,28 +549,90 @@ export default function AttendanceReport() {
                     size: 32,
                   }),
                 ],
+                alignment: AlignmentType.CENTER,
               }),
-              new Paragraph({ text: "STT Payakumbuh" }),
-              new Paragraph({ text: getDescriptionText() }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "STT Payakumbuh",
+                    size: 24,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: getDescription(),
+                    size: 20,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Dicetak pada: ${new Date().toLocaleDateString(
+                      "id-ID"
+                    )}`,
+                    size: 18,
+                  }),
+                ],
+                alignment: AlignmentType.LEFT,
+              }),
+              new Paragraph({ text: "" }), // Empty paragraph for spacing
+              new DocxTable({
+                rows: tableRows,
+                width: {
+                  size: 100,
+                  type: WidthType.PERCENTAGE,
+                },
+              }),
               new Paragraph({ text: "" }),
-              ...filteredData.map(
-                (record, idx) =>
-                  new Paragraph({
-                    children: [
-                      new TextRun(
-                        `${idx + 1}. ${record.namaUser} | Bidang: ${
-                          record.bidangKerja || "-"
-                        } | Valid: ${record.validCount} | Invalid: ${
-                          record.invalidCount
-                        } | Total: ${record.totalCount}`
-                      ),
-                    ],
-                  })
-              ),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Payakumbuh, ${new Date().toLocaleDateString(
+                      "id-ID",
+                      { day: "2-digit", month: "long", year: "numeric" }
+                    )}`,
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({
+                children: [new TextRun({ text: "Mengetahui,", size: 22 })],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "(Dr. Zulkifli, S.Kom, M.Kom)",
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "____________________________",
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
+              }),
             ],
           },
         ],
       });
+
+      // Generate and download the document
       const blob = await Packer.toBlob(doc);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -315,18 +644,20 @@ export default function AttendanceReport() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
       toast.success("Laporan Word berhasil diunduh");
-    } catch {
-      toast.error("Gagal mengunduh Word");
+    } catch (error) {
+      console.error("Error generating Word document:", error);
+      toast.error("Gagal mengunduh laporan Word");
     }
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#F1F8E9" }}>
+    <div className="flex min-h-screens">
       <div className="fixed h-full">
         <Sidebar />
       </div>
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-60">
         <div className="fixed top-0 right-0 left-64 z-10 bg-background border-b">
           <Navbar />
         </div>
@@ -342,9 +673,10 @@ export default function AttendanceReport() {
                 </p>
               </div>
 
-              {/* Filter Bar Baru: semua filter kanan dan button hijau */}
-              <div className="flex flex-col gap-2 w-full max-w-3xl justify-end items-end">
-                <div className="flex gap-2 w-full justify-end">
+              {/* Filter Bar */}
+              <div className="space-y-4">
+                {/* Filter Bar Atas */}
+                <div className="flex items-center justify-end gap-2">
                   {/* Search Input */}
                   <div className="relative">
                     <input
@@ -358,33 +690,10 @@ export default function AttendanceReport() {
                       <Search className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
-                  {/* Button Unduh Laporan */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="inline-flex items-center px-4 py-2 rounded-md text-white"
-                        style={{ backgroundColor: "#8BC34A" }}
-                      >
-                        <Download className="h-4 w-4 mr-2" /> Unduh Laporan
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleDownloadPDF}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai PDF
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDownloadExcel}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai Excel
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDownloadWord}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Unduh sebagai Word
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-                <div className="flex items-center gap-2 w-full justify-end">
+
+                {/* Filter Bar Bawah */}
+                <div className="flex items-center gap-2">
                   {/* Filter Bulan */}
                   <Select
                     value={selectedMonth}
@@ -430,6 +739,7 @@ export default function AttendanceReport() {
                       <SelectItem value="2025">2025</SelectItem>
                     </SelectContent>
                   </Select>
+
                   {/* Date Range Picker */}
                   <div className="flex items-center gap-2">
                     <DatePickerWithRange
@@ -449,6 +759,39 @@ export default function AttendanceReport() {
                       </button>
                     )}
                   </div>
+
+                  {/* Download Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        className="flex items-center gap-2 h-10 px-4 text-white"
+                        style={{ backgroundColor: "#8BC34A" }}
+                        onMouseOver={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#689F38")
+                        }
+                        onMouseOut={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#8BC34A")
+                        }
+                      >
+                        <FileDown className="h-4 w-4" />
+                        Unduh Laporan
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleDownloadPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadExcel}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWord}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Unduh sebagai Word
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -471,8 +814,8 @@ export default function AttendanceReport() {
                         Memuat data...
                       </TableCell>
                     </TableRow>
-                  ) : filteredData.length > 0 ? (
-                    filteredData.map((record) => (
+                  ) : sortedData.length > 0 ? (
+                    sortedData.map((record) => (
                       <TableRow
                         key={record.idUser}
                         className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -511,7 +854,7 @@ export default function AttendanceReport() {
                     </TableRow>
                   )}
                 </TableBody>
-                {filteredData.length > 0 && (
+                {sortedData.length > 0 && (
                   <tfoot>
                     <TableRow className="bg-slate-100 dark:bg-slate-800 font-semibold">
                       <TableCell
@@ -522,32 +865,12 @@ export default function AttendanceReport() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-xs text-green-600 font-medium">
-                          {(
-                            (filteredData.reduce(
-                              (acc, user) => acc + user.validCount,
-                              0
-                            ) /
-                              filteredData.reduce(
-                                (acc, user) => acc + user.totalCount,
-                                0
-                              ) || 0) * 100
-                          ).toFixed(1)}
-                          %
+                          {summary.percentValid.toFixed(1)}%
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-xs text-red-600 font-medium">
-                          {(
-                            (filteredData.reduce(
-                              (acc, user) => acc + user.invalidCount,
-                              0
-                            ) /
-                              filteredData.reduce(
-                                (acc, user) => acc + user.totalCount,
-                                0
-                              ) || 0) * 100
-                          ).toFixed(1)}
-                          %
+                          {summary.percentInvalid.toFixed(1)}%
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-medium">

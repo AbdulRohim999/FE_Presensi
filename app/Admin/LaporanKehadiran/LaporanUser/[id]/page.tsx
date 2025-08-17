@@ -508,6 +508,17 @@ export default function UserAttendanceReport({
               <>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
+                    {/* Back Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push("/Admin/LaporanKehadiran")}
+                      className="h-9"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Kembali
+                    </Button>
+
                     {/* Filter Bulan */}
                     <Select
                       value={selectedMonth}
@@ -545,8 +556,6 @@ export default function UserAttendanceReport({
                         <SelectItem value="all">Semua Status</SelectItem>
                         <SelectItem value="Valid">Valid</SelectItem>
                         <SelectItem value="Invalid">Invalid</SelectItem>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Izin">Izin</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -617,10 +626,6 @@ export default function UserAttendanceReport({
                                 className={`px-2 py-1 rounded-full text-sm ${
                                   record.status === "Valid"
                                     ? "bg-green-100 text-green-800"
-                                    : record.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : record.status === "Izin"
-                                    ? "bg-yellow-100 text-yellow-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
                               >

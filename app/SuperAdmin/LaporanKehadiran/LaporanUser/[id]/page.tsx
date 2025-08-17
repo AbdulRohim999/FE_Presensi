@@ -1,7 +1,7 @@
 "use client";
 
-import { Navbar } from "@/app/SuperAdmin/components/Navbar";
-import { Sidebar } from "@/app/SuperAdmin/components/Sidebar";
+import { Navbar } from "@/app/Admin/components/Navbar";
+import { Sidebar } from "@/app/Admin/components/Sidebar";
 import { DatePickerWithRange } from "@/components/date-range-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,7 @@ import { getKehadiranUser } from "@/lib/api";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ArrowLeft, Download, X } from "lucide-react";
+import { ArrowLeft, Download, FilterX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -47,6 +47,76 @@ interface KehadiranUser {
   absenSore: string | null;
   status: string;
 }
+
+// Helper functions (Dipindahkan ke sini agar dapat diakses oleh checkAndUpdateStatus)
+// Format time (jam:menit)
+const formatTime = (timeString: string | null) => {
+  if (!timeString) return "-";
+  try {
+    // Jika ada titik, ambil sebelum titik (hilangkan milidetik/mikrodetik)
+    const mainTime = timeString.split(".")[0];
+    const parts = mainTime.split(":").map((part) => part.padStart(2, "0"));
+    if (parts.length === 3) {
+      return `${parts[0]}:${parts[1]}:${parts[2]}`;
+    } else if (parts.length === 2) {
+      return `${parts[0]}:${parts[1]}:00`;
+    }
+    // Jika format Date ISO
+    const date = new Date(timeString);
+    if (isNaN(date.getTime())) return "-";
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "-";
+  }
+};
+
+// Function to check if time is within range
+const isTimeWithinRange = (
+  time: string | null,
+  startTime: string,
+  endTime: string
+) => {
+  if (!time) return false;
+  try {
+    // Format waktu untuk perbandingan
+    let formattedTime = time;
+    if (time.includes("T")) {
+      // Jika format ISO, ambil bagian waktu saja
+      const date = new Date(time);
+      if (isNaN(date.getTime())) return false;
+      formattedTime = `${date.getHours().toString().padStart(2, "0")}:${date
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+    } else if (time.includes(".")) {
+      // Jika ada milidetik, ambil sebelum titik
+      formattedTime = time.split(".")[0];
+    }
+
+    const [hours, minutes] = formattedTime.split(":").map(Number);
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+    const timeInMinutes = hours * 60 + minutes;
+    const startInMinutes = startHours * 60 + startMinutes;
+    const endInMinutes = endHours * 60 + endMinutes;
+
+    return timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes;
+  } catch (error) {
+    console.error("Error checking time range:", error);
+    return false;
+  }
+};
+
+// Fungsi untuk mendapatkan nama hari dalam bahasa Indonesia
+const getHariIndonesia = (date: Date): string => {
+  const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  return hari[date.getDay()];
+};
 
 export default function UserAttendanceReport({
   params,
@@ -69,119 +139,6 @@ export default function UserAttendanceReport({
     (new Date().getMonth() + 1).toString()
   );
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-
-  // Fungsi untuk mendapatkan nama bulan
-  const getMonthName = (month: string) => {
-    const months = {
-      "1": "Januari",
-      "2": "Februari",
-      "3": "Maret",
-      "4": "April",
-      "5": "Mei",
-      "6": "Juni",
-      "7": "Juli",
-      "8": "Agustus",
-      "9": "September",
-      "10": "Oktober",
-      "11": "November",
-      "12": "Desember",
-    };
-    return months[month as keyof typeof months] || "";
-  };
-
-  // Fungsi untuk mendapatkan deskripsi berdasarkan filter
-  const getDescription = () => {
-    const description = `Laporan kehadiran ${
-      userInfo?.namaUser || "Loading..."
-    }`;
-    let filterDescription = "";
-
-    if (date?.from) {
-      const formatDate = (date: Date) => {
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = getMonthName((date.getMonth() + 1).toString());
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      };
-
-      const startDate = formatDate(date.from);
-      const endDate = date.to ? formatDate(date.to) : startDate;
-      filterDescription = `pada ${startDate} hingga ${endDate}`;
-    } else if (selectedMonth !== "all") {
-      filterDescription = `Bulan ${getMonthName(selectedMonth)}`;
-    }
-
-    return (
-      <>
-        {description}
-        {filterDescription && <br />}
-        {filterDescription}
-      </>
-    );
-  };
-
-  // Fungsi untuk format waktu
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return "-";
-    try {
-      // Jika ada titik, ambil sebelum titik (hilangkan milidetik/mikrodetik)
-      const mainTime = timeString.split(".")[0];
-      const parts = mainTime.split(":").map((part) => part.padStart(2, "0"));
-      if (parts.length === 3) {
-        return `${parts[0]}:${parts[1]}:${parts[2]}`;
-      } else if (parts.length === 2) {
-        return `${parts[0]}:${parts[1]}:00`;
-      }
-      // Jika format Date ISO
-      const date = new Date(timeString);
-      if (isNaN(date.getTime())) return "-";
-      const hours = date.getHours().toString().padStart(2, "0");
-      const minutes = date.getMinutes().toString().padStart(2, "0");
-      const seconds = date.getSeconds().toString().padStart(2, "0");
-      return `${hours}:${minutes}:${seconds}`;
-    } catch (error) {
-      console.error("Error formatting time:", error);
-      return "-";
-    }
-  };
-
-  // Fungsi untuk mengecek apakah waktu berada dalam rentang
-  const isTimeWithinRange = (
-    time: string | null,
-    startTime: string,
-    endTime: string
-  ) => {
-    if (!time) return false;
-    try {
-      // Format waktu untuk perbandingan
-      let formattedTime = time;
-      if (time.includes("T")) {
-        // Jika format ISO, ambil bagian waktu saja
-        const date = new Date(time);
-        if (isNaN(date.getTime())) return false;
-        formattedTime = `${date.getHours().toString().padStart(2, "0")}:${date
-          .getMinutes()
-          .toString()
-          .padStart(2, "0")}`;
-      } else if (time.includes(".")) {
-        // Jika ada milidetik, ambil sebelum titik
-        formattedTime = time.split(".")[0];
-      }
-
-      const [hours, minutes] = formattedTime.split(":").map(Number);
-      const [startHours, startMinutes] = startTime.split(":").map(Number);
-      const [endHours, endMinutes] = endTime.split(":").map(Number);
-
-      const timeInMinutes = hours * 60 + minutes;
-      const startInMinutes = startHours * 60 + startMinutes;
-      const endInMinutes = endHours * 60 + endMinutes;
-
-      return timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes;
-    } catch (error) {
-      console.error("Error checking time range:", error);
-      return false;
-    }
-  };
 
   // Fungsi untuk mengecek dan mengubah status berdasarkan logika yang benar
   const checkAndUpdateStatus = (record: KehadiranUser) => {
@@ -281,7 +238,7 @@ export default function UserAttendanceReport({
         absenPagi: record.absenPagi,
         absenSiang: record.absenSiang,
         absenSore: record.absenSore,
-        status: checkAndUpdateStatus(record),
+        status: checkAndUpdateStatus(record), // Menggunakan fungsi baru untuk status
       }));
       setKehadiranData(validData);
       if (validData.length > 0) {
@@ -300,7 +257,7 @@ export default function UserAttendanceReport({
     }
   };
 
-  // Update status setiap menit
+  // Update status setiap menit (tetap menggunakan checkAndUpdateStatus)
   useEffect(() => {
     const interval = setInterval(() => {
       setKehadiranData((prevData) =>
@@ -328,7 +285,7 @@ export default function UserAttendanceReport({
 
     // Filter status
     if (selectedStatus !== "all") {
-      if (record.status !== selectedStatus) return false;
+      if (record.status !== selectedStatus) return false; // record.status sudah hasil dari checkAndUpdateStatus
     }
 
     // Filter tanggal range
@@ -346,7 +303,7 @@ export default function UserAttendanceReport({
     }
   });
 
-  // Format date to DD/MM/YYYY
+  // Format date to DD/MM/YYYY with day
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -354,7 +311,12 @@ export default function UserAttendanceReport({
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${getHariIndonesia(date)}, ${day}/${month}/${year}`;
+  };
+
+  // Clear date filter
+  const clearDateFilter = () => {
+    setDate(undefined);
   };
 
   const handleDownloadPDF = () => {
@@ -372,7 +334,12 @@ export default function UserAttendanceReport({
         formatDate(item.tanggalAbsensi),
         item.absenPagi ? formatTime(item.absenPagi) : "-",
         item.absenSiang ? formatTime(item.absenSiang) : "-",
-        item.absenSore ? formatTime(item.absenSore) : "-",
+        (() => {
+          const date = new Date(item.tanggalAbsensi);
+          const isSaturday = date.getDay() === 6;
+          if (isSaturday) return "*";
+          return item.absenSore ? formatTime(item.absenSore) : "-";
+        })(),
         item.status,
       ]);
       autoTable(doc, {
@@ -404,7 +371,12 @@ export default function UserAttendanceReport({
         Tanggal: formatDate(item.tanggalAbsensi),
         "Absen Pagi": item.absenPagi ? formatTime(item.absenPagi) : "-",
         "Absen Siang": item.absenSiang ? formatTime(item.absenSiang) : "-",
-        "Absen Sore": item.absenSore ? formatTime(item.absenSore) : "-",
+        "Absen Sore": (() => {
+          const date = new Date(item.tanggalAbsensi);
+          const isSaturday = date.getDay() === 6;
+          if (isSaturday) return "*";
+          return item.absenSore ? formatTime(item.absenSore) : "-";
+        })(),
         Status: item.status,
       }));
       const wb = XLSX.utils.book_new();
@@ -447,9 +419,14 @@ export default function UserAttendanceReport({
                           item.absenPagi ? formatTime(item.absenPagi) : "-"
                         } | Siang: ${
                           item.absenSiang ? formatTime(item.absenSiang) : "-"
-                        } | Sore: ${
-                          item.absenSore ? formatTime(item.absenSore) : "-"
-                        } | Status: ${item.status}`
+                        } | Sore: ${(() => {
+                          const date = new Date(item.tanggalAbsensi);
+                          const isSaturday = date.getDay() === 6;
+                          if (isSaturday) return "*";
+                          return item.absenSore
+                            ? formatTime(item.absenSore)
+                            : "-";
+                        })()} | Status: ${item.status}`
                       ),
                     ],
                   })
@@ -495,10 +472,10 @@ export default function UserAttendanceReport({
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
-                  Laporan Kehadiran
+                  Laporan Kehadiran - {userInfo?.namaUser || "Loading..."}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                  {getDescription()}
+                  Departemen {userInfo?.bidangKerja || "Loading..."}
                 </p>
               </div>
               <DropdownMenu>
@@ -536,7 +513,7 @@ export default function UserAttendanceReport({
                       value={selectedMonth}
                       onValueChange={setSelectedMonth}
                     >
-                      <SelectTrigger className="w-[196px]">
+                      <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Filter Bulan" />
                       </SelectTrigger>
                       <SelectContent>
@@ -574,18 +551,18 @@ export default function UserAttendanceReport({
                     </Select>
 
                     {/* Date Range Picker */}
-                    <div className="flex items-center gap-2">
-                      <DatePickerWithRange date={date} setDate={setDate} />
-                      {date?.from && (
-                        <button
-                          onClick={() => setDate(undefined)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                          title="Reset periode"
-                        >
-                          <X className="h-4 w-4 text-slate-500" />
-                        </button>
-                      )}
-                    </div>
+                    <DatePickerWithRange date={date} setDate={setDate} />
+                    {date && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearDateFilter}
+                        className="h-9"
+                      >
+                        <FilterX className="h-4 w-4 mr-1" />
+                        Reset
+                      </Button>
+                    )}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {filteredAttendance.length} entri

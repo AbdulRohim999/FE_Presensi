@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +42,7 @@ import {
   PerizinanAdmin,
   updateStatusPerizinanAdmin,
 } from "@/lib/api";
-import { Eye, FileText } from "lucide-react";
+import { CheckCircle, Eye, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Navbar } from "../components/Navbar";
@@ -47,6 +57,70 @@ export default function KelolaPerizian() {
   const [selectedPerizinan, setSelectedPerizinan] =
     useState<PerizinanAdmin | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // State untuk pop-up konfirmasi
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "setujui" | "tolak";
+    perizinan: PerizinanAdmin;
+  } | null>(null);
+
+  // State untuk pop-up loading dan success
+  const [showLoadingPopup, setShowLoadingPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [successData, setSuccessData] = useState({
+    waktu: "",
+    status: "BERHASIL",
+    lokasi: "Kantor Pusat",
+    tanggal: "",
+    action: "",
+  });
+
+  // Fungsi untuk menampilkan loading popup
+  const showLoading = (_action: string) => {
+    setShowLoadingPopup(true);
+    setLoadingProgress(0);
+
+    // Simulasi progress loading
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
+    return progressInterval;
+  };
+
+  // Fungsi untuk menampilkan success popup
+  const showSuccess = (action: string) => {
+    const waktuAksi = new Date().toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Jakarta",
+    });
+
+    const tanggalAksi = new Date().toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    setSuccessData({
+      waktu: waktuAksi,
+      status: "BERHASIL",
+      lokasi: "Kantor Pusat",
+      tanggal: tanggalAksi,
+      action: action,
+    });
+
+    setShowSuccessPopup(true);
+  };
 
   useEffect(() => {
     const fetchIzin = async () => {
@@ -80,33 +154,69 @@ export default function KelolaPerizian() {
     return `${day}-${month}-${year}`;
   };
 
-  // Handler untuk update status
-  const handleUpdateStatus = async (idPerizinan: number, status: string) => {
-    if (!token) {
-      toast.error("Token tidak tersedia");
-      return;
-    }
+  // Handler untuk menampilkan dialog konfirmasi
+  const handleConfirmAction = (
+    type: "setujui" | "tolak",
+    perizinan: PerizinanAdmin
+  ) => {
+    setConfirmAction({ type, perizinan });
+    setShowConfirmDialog(true);
+  };
+
+  // Handler untuk eksekusi aksi setelah konfirmasi
+  const handleExecuteAction = async () => {
+    if (!confirmAction || !token) return;
+
+    const status = confirmAction.type === "setujui" ? "Diterima" : "Ditolak";
+    const actionText =
+      confirmAction.type === "setujui"
+        ? "Menyetujui Pengajuan Izin"
+        : "Menolak Pengajuan Izin";
+
+    // Tutup dialog konfirmasi
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+
+    // Tampilkan loading popup
+    const progressInterval = showLoading(actionText);
 
     try {
       setIsLoading(true);
-
-      await updateStatusPerizinanAdmin(idPerizinan, status, token);
+      await updateStatusPerizinanAdmin(
+        confirmAction.perizinan.idPerizinan,
+        status,
+        token
+      );
 
       // Update data lokal
       setIzinData((prevData) =>
         prevData.map((item) =>
-          item.idPerizinan === idPerizinan ? { ...item, status } : item
+          item.idPerizinan === confirmAction.perizinan.idPerizinan
+            ? { ...item, status }
+            : item
         )
       );
 
-      // Tampilkan notifikasi sukses
-      if (status === "Diterima") {
-        toast.success("Pengajuan izin berhasil disetujui");
-      } else if (status === "Ditolak") {
-        toast.success("Pengajuan izin berhasil ditolak");
-      }
+      // Selesaikan progress
+      setLoadingProgress(100);
+      clearInterval(progressInterval);
+
+      // Sembunyikan loading popup dan tampilkan success popup
+      setTimeout(() => {
+        setShowLoadingPopup(false);
+        showSuccess(actionText);
+      }, 500);
+
+      // Refresh halaman setelah 2 detik
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
+      // Clear progress interval jika error
+      clearInterval(progressInterval);
+      setShowLoadingPopup(false);
       console.error(err);
+      toast.error("Gagal memproses pengajuan izin");
     } finally {
       setIsLoading(false);
     }
@@ -322,10 +432,7 @@ export default function KelolaPerizian() {
                                     size="sm"
                                     variant="default"
                                     onClick={() =>
-                                      handleUpdateStatus(
-                                        item.idPerizinan,
-                                        "Diterima"
-                                      )
+                                      handleConfirmAction("setujui", item)
                                     }
                                     disabled={isLoading}
                                     className="bg-green-600 hover:bg-green-700 text-white"
@@ -336,10 +443,7 @@ export default function KelolaPerizian() {
                                     size="sm"
                                     variant="destructive"
                                     onClick={() =>
-                                      handleUpdateStatus(
-                                        item.idPerizinan,
-                                        "Ditolak"
-                                      )
+                                      handleConfirmAction("tolak", item)
                                     }
                                     disabled={isLoading}
                                     className="bg-red-600 hover:bg-red-700 text-white"
@@ -529,6 +633,175 @@ export default function KelolaPerizian() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Konfirmasi */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Aksi</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "setujui"
+                ? `Apakah Anda yakin menyetujui pengajuan izin dari "${confirmAction?.perizinan.namaUser}"?`
+                : `Apakah Anda yakin menolak pengajuan izin dari "${confirmAction?.perizinan.namaUser}"?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleExecuteAction}
+              disabled={isLoading}
+              className={
+                confirmAction?.type === "setujui"
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-red-600 hover:bg-red-700 text-white"
+              }
+            >
+              {isLoading
+                ? "Memproses..."
+                : confirmAction?.type === "setujui"
+                ? "Setujui"
+                : "Tolak"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Loading Pop-up */}
+      {showLoadingPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              {/* Circular Progress */}
+              <div className="relative">
+                <svg className="w-20 h-20" viewBox="0 0 36 36">
+                  <path
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="3"
+                    strokeDasharray={`${loadingProgress}, 100`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-semibold text-green-600">
+                    {loadingProgress}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Text */}
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Memproses {successData.action}
+                </h3>
+              </div>
+
+              {/* Linear Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${loadingProgress}%` }}
+                ></div>
+              </div>
+
+              {/* Sub-status Text */}
+              <p className="text-sm text-gray-500">Mohon tunggu sebentar...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Pop-up */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              {/* Success Icon */}
+              <div className="relative">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <div className="absolute -top-2 -right-2">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {successData.action} Berhasil!
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Terima kasih, {successData.action.toLowerCase()} telah
+                  berhasil dilakukan
+                </p>
+              </div>
+
+              {/* Details Panel */}
+              <div className="w-full bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Waktu:</span>
+                  <span className="text-sm font-medium">
+                    {successData.waktu}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-800">
+                    {successData.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Lokasi:</span>
+                  <span className="text-sm font-medium">
+                    {successData.lokasi}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tanggal:</span>
+                  <span className="text-sm font-medium">
+                    {successData.tanggal}
+                  </span>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setShowSuccessPopup(false);
+                  setShowLoadingPopup(false);
+                  // Refresh halaman setelah menutup popup
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 100);
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

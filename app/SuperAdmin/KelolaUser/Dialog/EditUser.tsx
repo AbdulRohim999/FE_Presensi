@@ -45,12 +45,18 @@ interface User {
 
 interface EditUserDialogProps {
   user: User;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
-export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
+export function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+  onSuccess,
+}: EditUserDialogProps) {
   const { token } = useAuth();
-  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstname: user.firstname,
@@ -71,7 +77,6 @@ export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Reset bidang kerja jika tipe user berubah
     if (name === "tipeUser") {
       setFormData((prev) => ({ ...prev, bidangKerja: "" }));
     }
@@ -83,13 +88,11 @@ export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
       toast.error("Token tidak ditemukan");
       return;
     }
-
     setIsLoading(true);
-
     try {
       await updateUser(token, user.idUser, formData);
       toast.success("Data user berhasil diperbarui");
-      setOpen(false);
+      onOpenChange(false);
       onSuccess();
     } catch (error) {
       console.error("Error updating user:", error);
@@ -100,7 +103,13 @@ export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        onOpenChange(open);
+        if (!open) window.location.reload();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Pencil className="h-4 w-4" />
@@ -160,7 +169,7 @@ export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="nip" className="text-right">
-                NIDN
+                NIP
               </Label>
               <Input
                 id="nip"
@@ -280,12 +289,21 @@ export function EditUserDialog({ user, onSuccess }: EditUserDialogProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                onOpenChange(false);
+              }}
               disabled={isLoading}
             >
               Batal
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              onClick={async (e) => {
+                await handleSubmit(e);
+                onOpenChange(false);
+              }}
+            >
               {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </DialogFooter>

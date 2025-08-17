@@ -261,6 +261,11 @@ export default function Perizinan() {
         });
 
         setShowSuccessPopup(true);
+
+        // Refresh halaman setelah 2 detik agar user bisa lihat success popup
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }, 500);
 
       // Reset form
@@ -892,6 +897,10 @@ export default function Perizinan() {
                 onClick={() => {
                   setShowSuccessPopup(false);
                   setShowLoadingPopup(false);
+                  // Refresh halaman setelah menutup popup
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 100);
                 }}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
               >

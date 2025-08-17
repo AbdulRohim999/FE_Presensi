@@ -9,24 +9,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { deleteUser } from "@/lib/api";
-import { Trash } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 interface DeleteUserDialogProps {
   userId: number;
   userName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
 export function DeleteUserDialog({
   userId,
   userName,
+  open,
+  onOpenChange,
   onSuccess,
 }: DeleteUserDialogProps) {
   const { token } = useAuth();
@@ -43,7 +44,8 @@ export function DeleteUserDialog({
     try {
       await deleteUser(token, userId);
       toast.success("User berhasil dihapus");
-      onSuccess();
+      onSuccess(); 
+      onOpenChange(false);
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error("Gagal menghapus user");
@@ -53,12 +55,7 @@ export function DeleteUserDialog({
   };
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          <Trash className="h-4 w-4" />
-        </Button>
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
@@ -68,7 +65,14 @@ export function DeleteUserDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Batal</AlertDialogCancel>
+          <AlertDialogCancel
+            disabled={isLoading}
+            onClick={() => {
+              onOpenChange(false);
+            }}
+          >
+            Batal
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isLoading}

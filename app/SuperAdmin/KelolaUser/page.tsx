@@ -1,7 +1,14 @@
 "use client";
 
-import { Navbar } from "@/app/SuperAdmin/components/Navbar";
-import { Sidebar } from "@/app/SuperAdmin/components/Sidebar";
+import { Navbar } from "@/app/Admin/components/Navbar";
+import { Sidebar } from "@/app/Admin/components/Sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -11,13 +18,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
-import { getDaftarPengguna } from "@/lib/api";
+import { getAdminUsers } from "@/lib/api";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Lock, Pencil, Search, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DeleteUserDialog } from "./Dialog/DeleteUser";
+import { EditPasswordDialog } from "./Dialog/EditPassword";
 import { EditUserDialog } from "./Dialog/EditUser";
 import { AddUserDialog } from "./Dialog/TambahUser";
 
@@ -35,6 +43,7 @@ interface User {
   phoneNumber: string | null;
   createdAt: string;
   updatedAt: string | null;
+  fotoProfile?: string | null;
 }
 
 export default function KelolaUser() {
@@ -42,25 +51,83 @@ export default function KelolaUser() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
+  const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
+  const [userPhotos, setUserPhotos] = useState<{ [key: number]: string }>({});
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!token) return;
 
     try {
       setIsLoading(true);
-      const data = await getDaftarPengguna(token);
+      const data = await getAdminUsers(token);
       setUsers(data);
+
+      // Buat map foto profile dari data yang sudah ada
+      const photoMap: { [key: number]: string } = {};
+      data.forEach((user) => {
+        if (user.fotoProfile) {
+          // Jika fotoProfile sudah berupa URL lengkap, gunakan langsung
+          if (user.fotoProfile.startsWith("http")) {
+            photoMap[user.idUser] = user.fotoProfile;
+          } else {
+            // Jika hanya nama file, gabungkan dengan base URL
+            photoMap[
+              user.idUser
+            ] = `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.fotoProfile}`;
+          }
+        }
+      });
+      setUserPhotos(photoMap);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Gagal mengambil data pengguna");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchUsers();
-  }, [token]);
+  }, [fetchUsers]);
+
+  // Listen for refresh event from AddUserDialog
+  useEffect(() => {
+    const handleRefreshUsers = () => {
+      fetchUsers();
+    };
+
+    window.addEventListener("refreshUsers", handleRefreshUsers);
+    return () => {
+      window.removeEventListener("refreshUsers", handleRefreshUsers);
+    };
+  }, [fetchUsers]);
+
+  // Fungsi untuk mendapatkan URL foto profile user
+  const getUserPhotoUrl = (user: User) => {
+    // Prioritas: userPhotos (dari state) > fotoProfile (dari API) > fallback
+    if (userPhotos[user.idUser]) {
+      return userPhotos[user.idUser];
+    }
+
+    if (user.fotoProfile) {
+      if (user.fotoProfile.startsWith("http")) {
+        return user.fotoProfile;
+      } else {
+        return `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${user.fotoProfile}`;
+      }
+    }
+
+    return ""; // Fallback ke AvatarFallback
+  };
+
+  // Fungsi untuk handle error loading foto
+  const handlePhotoError = (userId: number) => {
+    console.log(`Failed to load photo for user ${userId}, using fallback`);
+    // Bisa ditambahkan logic untuk retry atau set default image
+  };
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "dd MMMM yyyy HH:mm", { locale: id });
@@ -120,10 +187,9 @@ export default function KelolaUser() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nama</TableHead>
+                    <TableHead>Profil</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>NIP</TableHead>
-                    <TableHead>Tipe User</TableHead>
+                    <TableHead>NIDN</TableHead>
                     <TableHead>Bidang Kerja</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tanggal Dibuat</TableHead>
@@ -133,13 +199,13 @@ export default function KelolaUser() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-4">
+                      <TableCell colSpan={7} className="text-center py-4">
                         Memuat data...
                       </TableCell>
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-4">
+                      <TableCell colSpan={7} className="text-center py-4">
                         {searchQuery
                           ? "Tidak ada data yang sesuai dengan pencarian"
                           : "Tidak ada data pengguna"}
@@ -148,37 +214,106 @@ export default function KelolaUser() {
                   ) : (
                     filteredUsers.map((user) => (
                       <TableRow key={user.idUser}>
-                        <TableCell className="font-medium">
-                          {user.firstname} {user.lastname}
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.nip || "-"}</TableCell>
+                        {/* Profil */}
                         <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              user.tipeUser === "Dosen"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {user.tipeUser}
-                          </span>
-                        </TableCell>
-                        <TableCell>{user.bidangKerja || "-"}</TableCell>
-                        <TableCell>{user.status || "-"}</TableCell>
-                        <TableCell>{formatDate(user.createdAt)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center gap-2">
-                            <EditUserDialog
-                              user={user}
-                              onSuccess={fetchUsers}
-                            />
-                            <DeleteUserDialog
-                              userId={user.idUser}
-                              userName={`${user.firstname} ${user.lastname}`}
-                              onSuccess={fetchUsers}
-                            />
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage
+                                src={getUserPhotoUrl(user)}
+                                alt={user.firstname + " " + user.lastname}
+                                onError={() => handlePhotoError(user.idUser)}
+                              />
+                              <AvatarFallback>
+                                {user.firstname.charAt(0).toUpperCase()}
+                                {user.lastname.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-semibold text-base">
+                                {user.firstname} {user.lastname}
+                              </div>
+                              <div>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    user.tipeUser === "Dosen"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-green-100 text-green-700"
+                                  }`}
+                                >
+                                  {user.tipeUser}
+                                </span>
+                              </div>
+                            </div>
                           </div>
+                        </TableCell>
+                        {/* Email */}
+                        <TableCell>{user.email}</TableCell>
+                        {/* NIDN */}
+                        <TableCell>{user.nip || "-"}</TableCell>
+                        {/* Bidang Kerja */}
+                        <TableCell>{user.bidangKerja || "-"}</TableCell>
+                        {/* Status */}
+                        <TableCell>
+                          {user.status === "Aktif" ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              Aktif
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+                              {user.status || "-"}
+                            </span>
+                          )}
+                        </TableCell>
+                        {/* Tanggal Dibuat*/}
+                        <TableCell>{formatDate(user.createdAt)}</TableCell>
+                        {/* Aksi */}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <span className="sr-only">Aksi</span>
+                                <svg
+                                  width="20"
+                                  height="20"
+                                  fill="none"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <circle cx="10" cy="4" r="1.5" fill="#888" />
+                                  <circle cx="10" cy="10" r="1.5" fill="#888" />
+                                  <circle cx="10" cy="16" r="1.5" fill="#888" />
+                                </svg>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setEditUserDialogOpen(true);
+                                }}
+                                className="gap-2"
+                              >
+                                <Pencil className="h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setEditPasswordDialogOpen(true);
+                                }}
+                                className="gap-2"
+                              >
+                                <Lock className="h-4 w-4" /> Edit Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setDeleteUserDialogOpen(true);
+                                }}
+                                className="gap-2 text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" /> Hapus
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -189,6 +324,53 @@ export default function KelolaUser() {
           </div>
         </main>
       </div>
+      {selectedUser && (
+        <EditUserDialog
+          user={selectedUser as User}
+          open={editUserDialogOpen}
+          onOpenChange={(open) => {
+            console.log("Dialog open:", open);
+            setEditUserDialogOpen(false);
+            if (!open) setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setEditUserDialogOpen(false);
+            setSelectedUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
+      {selectedUser && (
+        <DeleteUserDialog
+          userId={selectedUser.idUser}
+          userName={selectedUser.firstname + " " + selectedUser.lastname}
+          open={deleteUserDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteUserDialogOpen(open);
+            if (!open) setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setDeleteUserDialogOpen(false);
+            setSelectedUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
+      {selectedUser && (
+        <EditPasswordDialog
+          isOpen={editPasswordDialogOpen}
+          onOpenChange={(open) => {
+            setEditPasswordDialogOpen(open);
+            if (!open) setSelectedUser(null);
+          }}
+          user={selectedUser as User}
+          onSubmit={() => {
+            setEditPasswordDialogOpen(false);
+            setSelectedUser(null);
+            // TODO: Tambahkan aksi update password jika perlu
+          }}
+        />
+      )}
     </div>
   );
 }
