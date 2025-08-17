@@ -1,7 +1,7 @@
 "use client";
 
-import { Navbar } from "@/app/Admin/components/Navbar";
-import { Sidebar } from "@/app/Admin/components/Sidebar";
+import { Navbar } from "@/app/SuperAdmin/components/Navbar";
+import { Sidebar } from "@/app/SuperAdmin/components/Sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
