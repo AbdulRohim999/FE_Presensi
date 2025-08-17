@@ -8,7 +8,7 @@ import {
   getAbsensiHariIni,
   getServerTimeWIBAsDate,
 } from "@/lib/api";
-import { Clock, Sun, Sunset } from "lucide-react";
+import { CheckCircle, Clock, Sun, Sunset } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,6 +29,17 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
   const [absensiHariIni, setAbsensiHariIni] = useState<AbsensiHariIni | null>(
     null
   );
+
+  // State untuk pop-up loading dan success
+  const [showLoadingPopup, setShowLoadingPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [successData, setSuccessData] = useState({
+    waktu: "",
+    status: "",
+    lokasi: "Kantor Pusat",
+    tanggal: "",
+  });
 
   // Update waktu server setiap detik
   useEffect(() => {
@@ -147,20 +158,70 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
     }
 
     setIsLoading(tipeAbsen);
+    setShowLoadingPopup(true);
+    setLoadingProgress(0);
+
+    // Simulasi progress loading
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
     try {
       await doAbsensi(token, tipeAbsen);
-      toast.success(
-        `Absensi ${tipeAbsen} berhasil pada ${
-          currentTime
-            ? currentTime.toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                timeZone: "Asia/Jakarta",
-              })
-            : "-"
-        } (WIB)`
-      );
+
+      // Selesaikan progress
+      setLoadingProgress(100);
+      clearInterval(progressInterval);
+
+      // Sembunyikan loading popup
+      setTimeout(() => {
+        setShowLoadingPopup(false);
+
+        // Tampilkan success popup
+        const waktuAbsen = currentTime
+          ? currentTime.toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              timeZone: "Asia/Jakarta",
+            })
+          : "-";
+
+        const tanggalAbsen = currentTime
+          ? currentTime.toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+          : "-";
+
+        // Tentukan status berdasarkan waktu
+        let status = "TEPAT WAKTU";
+
+        // Logika untuk menentukan terlambat (contoh sederhana)
+        if (tipeAbsen === "pagi" && currentTime) {
+          const jam = currentTime.getHours();
+          const menit = currentTime.getMinutes();
+          if (jam > 8 || (jam === 8 && menit > 15)) {
+            status = "TERLAMBAT";
+          }
+        }
+
+        setSuccessData({
+          waktu: waktuAbsen,
+          status: status,
+          lokasi: "Kantor Pusat",
+          tanggal: tanggalAbsen,
+        });
+
+        setShowSuccessPopup(true);
+      }, 500);
 
       // Refresh data absensi setelah berhasil
       await fetchAbsensiHariIni();
@@ -168,9 +229,12 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
       if (onClose) {
         setTimeout(() => {
           onClose();
-        }, 1000); // beri jeda 1 detik agar user lihat alert
+        }, 3000); // Delay lebih lama agar user bisa lihat success popup
       }
     } catch (error) {
+      clearInterval(progressInterval);
+      setShowLoadingPopup(false);
+
       if (error instanceof Error) {
         toast.error(error.message);
       } else if (typeof error === "string") {
@@ -295,6 +359,137 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
           )}
         </div>
       </div>
+
+      {/* Loading Pop-up */}
+      {showLoadingPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              {/* Circular Progress */}
+              <div className="relative">
+                <svg className="w-20 h-20" viewBox="0 0 36 36">
+                  <path
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="3"
+                    strokeDasharray={`${loadingProgress}, 100`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-semibold text-green-600">
+                    {loadingProgress}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Text */}
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Memproses Absensi
+                </h3>
+              </div>
+
+              {/* Linear Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${loadingProgress}%` }}
+                ></div>
+              </div>
+
+              {/* Sub-status Text */}
+              <p className="text-sm text-gray-500">Mohon tunggu sebentar...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Pop-up */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              {/* Success Icon */}
+              <div className="relative">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <div className="absolute -top-2 -right-2">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Absensi Berhasil!
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Terima kasih, absensi Anda telah tercatat
+                </p>
+              </div>
+
+              {/* Details Panel */}
+              <div className="w-full bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Waktu Absen:</span>
+                  <span className="text-sm font-medium">
+                    {successData.waktu}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      successData.status === "TERLAMBAT"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {successData.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Lokasi:</span>
+                  <span className="text-sm font-medium">
+                    {successData.lokasi}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Tanggal:</span>
+                  <span className="text-sm font-medium">
+                    {successData.tanggal}
+                  </span>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setShowSuccessPopup(false);
+                  if (onClose) onClose();
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
