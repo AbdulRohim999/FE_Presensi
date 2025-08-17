@@ -221,6 +221,11 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
         });
 
         setShowSuccessPopup(true);
+
+        // Refresh halaman setelah 2 detik agar user bisa lihat success popup
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }, 500);
 
       // Refresh data absensi setelah berhasil
@@ -480,7 +485,12 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
               <button
                 onClick={() => {
                   setShowSuccessPopup(false);
+                  setShowLoadingPopup(false);
                   if (onClose) onClose();
+                  // Refresh halaman setelah menutup popup
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 100);
                 }}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
               >
