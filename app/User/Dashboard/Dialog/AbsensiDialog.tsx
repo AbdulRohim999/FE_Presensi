@@ -231,20 +231,21 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
 
         setShowSuccessPopup(true);
 
-        // Refresh halaman setelah 2 detik agar user bisa lihat success popup
+        // Refresh halaman setelah 10 detik agar user bisa lihat success popup
         setTimeout(() => {
           window.location.reload();
-        }, 2000);
+        }, 10000);
       }, 500);
 
       // Refresh data absensi setelah berhasil
       await fetchAbsensiHariIni();
 
-      if (onClose) {
-        setTimeout(() => {
-          onClose();
-        }, 3000); // Delay lebih lama agar user bisa lihat success popup
-      }
+      // Hapus auto-close 3 detik agar popup tampil 10 detik penuh
+      // if (onClose) {
+      //   setTimeout(() => {
+      //     onClose();
+      //   }, 3000);
+      // }
     } catch (error) {
       clearInterval(progressInterval);
       setShowLoadingPopup(false);
@@ -475,9 +476,6 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
                   >
                     {successData.status}
                   </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Lokasi:</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Tanggal:</span>
