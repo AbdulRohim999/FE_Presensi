@@ -37,9 +37,19 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
   const [successData, setSuccessData] = useState({
     waktu: "",
     status: "",
-    lokasi: "Kantor Pusat",
     tanggal: "",
   });
+
+  // Auto close success dialog setelah 10 detik
+  useEffect(() => {
+    if (!showSuccessPopup) return;
+    const timeoutId = setTimeout(() => {
+      setShowSuccessPopup(false);
+      setShowLoadingPopup(false);
+      if (onClose) onClose();
+    }, 10000);
+    return () => clearTimeout(timeoutId);
+  }, [showSuccessPopup, onClose]);
 
   // Update waktu server setiap detik
   useEffect(() => {
@@ -216,7 +226,6 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
         setSuccessData({
           waktu: waktuAbsen,
           status: status,
-          lokasi: "Kantor Pusat",
           tanggal: tanggalAbsen,
         });
 
@@ -469,9 +478,6 @@ export default function AbsensiDialog({ onClose }: { onClose?: () => void }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Lokasi:</span>
-                  <span className="text-sm font-medium">
-                    {successData.lokasi}
-                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Tanggal:</span>
