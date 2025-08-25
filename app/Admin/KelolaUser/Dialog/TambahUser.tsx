@@ -119,24 +119,46 @@ export function AddUserDialog() {
 
       await tambahUser(token, userData);
 
-      // Simpan payload untuk dialog sukses setelah reload
-      sessionStorage.setItem(
-        "addUserSuccess",
-        JSON.stringify({
-          firstname: userData.firstname,
-          lastname: userData.lastname,
-          email: userData.email,
-          tipeUser: userData.tipeUser,
-          bidangKerja: userData.bidangKerja,
-          status: userData.status,
+      // Beritahu parent bahwa proses sukses, kirim data untuk ditampilkan di dialog sukses
+      window.dispatchEvent(
+        new CustomEvent("adminUserAction", {
+          detail: {
+            type: "success",
+            data: {
+              firstname: userData.firstname,
+              lastname: userData.lastname,
+              username: userData.username,
+              email: userData.email,
+              tipeUser: userData.tipeUser,
+              bidangKerja: userData.bidangKerja,
+              status: userData.status,
+            },
+          },
         })
       );
 
-      // Reload halaman agar parent menampilkan dialog sukses
-      window.location.reload();
+      setOpen(false);
+      // Reset form
+      setFormData({
+        firstname: "",
+        lastname: "",
+        email: "",
+        username: "",
+        password: "",
+        tipeUser: "",
+        bidangKerja: "",
+        status: "Aktif",
+      });
     } catch (error) {
       console.error("Error adding user:", error);
-      toast.error("Gagal menambahkan user");
+      window.dispatchEvent(
+        new CustomEvent("adminUserAction", { detail: { type: "error" } })
+      );
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Gagal menambahkan user");
+      }
     } finally {
       setIsLoading(false);
     }

@@ -21,7 +21,19 @@ import { useAuth } from "@/context/AuthContext";
 import { getAdminUsers } from "@/lib/api";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Lock, Pencil, Search, Trash2 } from "lucide-react";
+import {
+  Activity,
+  Briefcase,
+  CheckCircle,
+  Lock,
+  Mail,
+  Pencil,
+  Search,
+  Shield,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DeleteUserDialog } from "./Dialog/DeleteUser";
@@ -64,6 +76,7 @@ export default function KelolaUser() {
   const [successData, setSuccessData] = useState<{
     firstname: string;
     lastname: string;
+    username?: string;
     email: string;
     tipeUser: string;
     bidangKerja: string;
@@ -71,6 +84,7 @@ export default function KelolaUser() {
   }>({
     firstname: "",
     lastname: "",
+    username: "",
     email: "",
     tipeUser: "",
     bidangKerja: "",
@@ -128,7 +142,7 @@ export default function KelolaUser() {
   // Listener event untuk mulai loading dari dialog
   useEffect(() => {
     const handleAction = (event: CustomEvent) => {
-      const { type } = event.detail || {};
+      const { type, data } = (event as CustomEvent).detail || {};
       if (type === "start") {
         setShowLoadingPopup(true);
         setLoadingProgress(0);
@@ -141,6 +155,17 @@ export default function KelolaUser() {
             return prev + 5;
           });
         }, 150);
+      } else if (type === "success") {
+        setLoadingProgress(100);
+        setTimeout(() => {
+          setShowLoadingPopup(false);
+          if (data) setSuccessData(data);
+          setShowSuccessPopup(true);
+          // refresh list data tanpa reload full page
+          fetchUsers();
+        }, 300);
+      } else if (type === "error") {
+        setShowLoadingPopup(false);
       }
     };
     window.addEventListener("adminUserAction", handleAction as EventListener);
@@ -149,20 +174,9 @@ export default function KelolaUser() {
         "adminUserAction",
         handleAction as EventListener
       );
-  }, []);
+  }, [fetchUsers]);
 
-  // Setelah reload, tampilkan success dialog jika ada flag di sessionStorage
-  useEffect(() => {
-    const flag = sessionStorage.getItem("addUserSuccess");
-    if (flag) {
-      try {
-        const data = JSON.parse(flag);
-        setSuccessData(data);
-        setShowSuccessPopup(true);
-      } catch {}
-      sessionStorage.removeItem("addUserSuccess");
-    }
-  }, []);
+  // Dihapus: tidak lagi menggunakan sessionStorage + reload untuk success dialog
 
   // Fungsi untuk mendapatkan URL foto profile user
   const getUserPhotoUrl = (user: User) => {
@@ -478,61 +492,89 @@ export default function KelolaUser() {
       {/* Success Pop-up setelah reload */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 shadow-xl">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    User Berhasil Dibuat!
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Data user telah tersimpan dengan sukses
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">User Berhasil Dibuat!</h3>
-                <p className="text-sm text-gray-500">
-                  Data user telah tersimpan dengan sukses
-                </p>
-              </div>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setShowSuccessPopup(false)}
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Detail List */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm text-gray-600">Nama</span>
-                <span className="text-sm font-medium">
-                  {successData.firstname} {successData.lastname}
-                </span>
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      {successData.firstname} {successData.lastname}
+                    </div>
+                    {successData.username && (
+                      <div className="text-xs text-gray-500">
+                        @{successData.username}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm text-gray-600">Email</span>
-                <span className="text-sm font-medium">{successData.email}</span>
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm font-medium">
+                    {successData.email}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm text-gray-600">Tipe User</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-4 h-4 text-gray-500" />
+                  <div className="text-sm text-gray-600">Tipe User</div>
+                </div>
+                <div className="text-sm font-medium">
                   {successData.tipeUser}
-                </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm text-gray-600">Bidang Pekerjaan</span>
-                <span className="text-sm font-medium">
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Briefcase className="w-4 h-4 text-gray-500" />
+                  <div className="text-sm text-gray-600">Bidang Pekerjaan</div>
+                </div>
+                <div className="text-sm font-medium">
                   {successData.bidangKerja}
-                </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm text-gray-600">Status</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Activity className="w-4 h-4 text-gray-500" />
+                  <div className="text-sm text-gray-600">Status</div>
+                </div>
+                <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
                   {successData.status}
                 </span>
               </div>
             </div>
+
+            {/* Footer */}
             <button
               onClick={() => setShowSuccessPopup(false)}
-              className="mt-6 w-full bg-black text-white py-3 rounded"
+              className="mt-6 w-full bg-black text-white py-3 rounded-xl font-medium"
             >
               Tutup
             </button>
