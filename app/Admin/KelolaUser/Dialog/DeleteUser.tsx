@@ -60,8 +60,10 @@ export function DeleteUserDialog({
     try {
       await deleteUser(token, userId);
       setLoadingProgress(100);
-      setTimeout(() => setShowLoading(false), 300);
-      setShowSuccess(true);
+      setTimeout(() => {
+        setShowLoading(false);
+        setShowSuccess(true);
+      }, 800);
     } catch (error) {
       console.error("Error deleting user:", error);
       setShowLoading(false);
@@ -71,8 +73,17 @@ export function DeleteUserDialog({
     }
   };
 
+  const containerOpen = open || showLoading || showSuccess || showError;
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog
+      open={containerOpen}
+      onOpenChange={(next) => {
+        // Jangan tutup saat loading/success/error sedang tampil
+        if (showLoading || showSuccess || showError) return;
+        onOpenChange(next);
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
