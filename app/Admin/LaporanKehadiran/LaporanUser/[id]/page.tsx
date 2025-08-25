@@ -313,6 +313,13 @@ export default function UserAttendanceReport({
     }
   });
 
+  // Sort filtered attendance by date (ascending)
+  const sortedAttendance = [...filteredAttendance].sort((a, b) => {
+    const dateA = new Date(a.tanggalAbsensi);
+    const dateB = new Date(b.tanggalAbsensi);
+    return dateA.getTime() - dateB.getTime();
+  });
+
   // Format date to DD/MM/YYYY with day
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -378,7 +385,7 @@ export default function UserAttendanceReport({
       y += 10;
 
       // Table
-      const tableData = filteredAttendance.map((item, idx) => [
+      const tableData = sortedAttendance.map((item, idx) => [
         idx + 1,
         formatDate(item.tanggalAbsensi),
         item.absenPagi ? formatTime(item.absenPagi) : "-",
@@ -457,7 +464,7 @@ export default function UserAttendanceReport({
       ];
       XLSX.utils.sheet_add_aoa(ws, header, { origin: "A6" });
 
-      const rows = filteredAttendance.map((item, idx) => [
+      const rows = sortedAttendance.map((item, idx) => [
         idx + 1,
         formatDate(item.tanggalAbsensi),
         item.absenPagi ? formatTime(item.absenPagi) : "-",
@@ -548,7 +555,7 @@ export default function UserAttendanceReport({
         }),
       ];
 
-      const bodyRows = filteredAttendance.map(
+      const bodyRows = sortedAttendance.map(
         (item, idx) =>
           new DocxTableRow({
             children: [

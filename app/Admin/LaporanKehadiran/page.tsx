@@ -148,6 +148,28 @@ export default function AttendanceReport() {
     return new Date().toLocaleDateString("id-ID");
   };
 
+  // Helper: dapatkan bulan untuk tanda tangan
+  const getSignatureMonth = (): string => {
+    if (date?.from) {
+      return date.from.toLocaleDateString("id-ID", { month: "long" });
+    }
+    if (selectedMonth !== "all") {
+      return getMonthName(selectedMonth);
+    }
+    return new Date().toLocaleDateString("id-ID", { month: "long" });
+  };
+
+  // Helper: dapatkan tahun untuk tanda tangan
+  const getSignatureYear = (): string => {
+    if (date?.from) {
+      return date.from.getFullYear().toString();
+    }
+    if (selectedMonth !== "all") {
+      return selectedYear;
+    }
+    return new Date().getFullYear().toString();
+  };
+
   const fetchUsers = async () => {
     if (!token) return;
 
@@ -338,13 +360,14 @@ export default function AttendanceReport() {
       // Signature section
       let y = doc.lastAutoTable?.finalY ?? 180;
       y += 24;
-      const tgl = new Date().toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
+      const signatureMonth = getSignatureMonth();
+      const signatureYear = getSignatureYear();
       doc.setFontSize(11);
-      doc.text(`Payakumbuh, ${tgl}`, pageWidth - 200, y);
+      doc.text(
+        `Payakumbuh, ${signatureMonth} ${signatureYear}`,
+        pageWidth - 200,
+        y
+      );
       y += 16;
       doc.text("Mengetahui,", pageWidth - 200, y);
       y += 56;
@@ -604,6 +627,42 @@ export default function AttendanceReport() {
               new DocxTable({
                 rows: tableRows,
                 width: { size: 100, type: WidthType.PERCENTAGE },
+              }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Payakumbuh, ${getSignatureMonth()} ${getSignatureYear()}`,
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({
+                children: [new TextRun({ text: "Mengetahui,", size: 22 })],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "(Dr. Zulkifli, S.Kom, M.Kom)",
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "____________________________",
+                    size: 22,
+                  }),
+                ],
+                alignment: AlignmentType.RIGHT,
               }),
             ],
           },
