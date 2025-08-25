@@ -60,6 +60,8 @@ export function EditUserDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [formData, setFormData] = useState({
     firstname: user.firstname,
     lastname: user.lastname,
@@ -91,11 +93,26 @@ export function EditUserDialog({
       return;
     }
     setIsLoading(true);
+    // Tampilkan loading overlay dengan progress
+    setShowLoading(true);
+    setLoadingProgress(0);
+    const interval = setInterval(() => {
+      setLoadingProgress((p) => {
+        if (p >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        return p + 5;
+      });
+    }, 150);
     try {
       await updateUser(token, user.idUser, formData);
+      setLoadingProgress(100);
+      setTimeout(() => setShowLoading(false), 300);
       setShowSuccess(true);
     } catch (error) {
       console.error("Error updating user:", error);
+      setShowLoading(false);
       setShowError(true);
     } finally {
       setIsLoading(false);
@@ -299,18 +316,59 @@ export function EditUserDialog({
             >
               Batal
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              onClick={async (e) => {
-                await handleSubmit(e);
-                onOpenChange(false);
-              }}
-            >
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Loading Overlay */}
+        {showLoading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <svg className="w-20 h-20" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="3"
+                      strokeDasharray={`${loadingProgress}, 100`}
+                      strokeLinecap="round"
+                      transform="rotate(-90 18 18)"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-semibold text-green-600">
+                      {loadingProgress}%
+                    </span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Memproses Pembaruan
+                  </h3>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${loadingProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Mohon tunggu sebentar...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Success Notification */}
         {showSuccess && (

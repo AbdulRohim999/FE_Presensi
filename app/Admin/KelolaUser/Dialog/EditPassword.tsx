@@ -50,6 +50,8 @@ export function EditPasswordDialog({
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -95,6 +97,17 @@ export function EditPasswordDialog({
       return;
     }
     setLoading(true);
+    setShowLoading(true);
+    setLoadingProgress(0);
+    const interval = setInterval(() => {
+      setLoadingProgress((p) => {
+        if (p >= 95) {
+          clearInterval(interval);
+          return 95;
+        }
+        return p + 5;
+      });
+    }, 150);
     try {
       await changeUserPasswordByAdmin(
         token,
@@ -102,8 +115,11 @@ export function EditPasswordDialog({
         newPassword,
         confirmPassword
       );
+      setLoadingProgress(100);
+      setTimeout(() => setShowLoading(false), 300);
       setShowSuccess(true);
     } catch {
+      setShowLoading(false);
       setShowError(true);
     } finally {
       setLoading(false);
@@ -221,7 +237,6 @@ export function EditPasswordDialog({
           <Button
             onClick={async () => {
               await handleSubmit();
-              onOpenChange(false);
             }}
             type="button"
             disabled={loading}
@@ -229,6 +244,54 @@ export function EditPasswordDialog({
             {loading ? "Menyimpan..." : "Simpan Password"}
           </Button>
         </AlertDialogFooter>
+
+        {/* Loading Overlay */}
+        {showLoading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <svg className="w-20 h-20" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="3"
+                      strokeDasharray={`${loadingProgress}, 100`}
+                      strokeLinecap="round"
+                      transform="rotate(-90 18 18)"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-semibold text-green-600">
+                      {loadingProgress}%
+                    </span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Memproses Pembaruan
+                  </h3>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${loadingProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Mohon tunggu sebentar...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Success Notification */}
         {showSuccess && (
