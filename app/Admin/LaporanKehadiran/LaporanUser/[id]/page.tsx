@@ -27,7 +27,17 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
 import { getKehadiranUser } from "@/lib/api";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  AlignmentType,
+  Document,
+  Table as DocxTable,
+  TableCell as DocxTableCell,
+  TableRow as DocxTableRow,
+  Packer,
+  Paragraph,
+  TextRun,
+  WidthType,
+} from "docx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ArrowLeft, Download, FilterX } from "lucide-react";
@@ -319,15 +329,54 @@ export default function UserAttendanceReport({
     setDate(undefined);
   };
 
+  const getDateRangeText = (): string => {
+    if (date?.from) {
+      const fmt = (d: Date) =>
+        d.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+      const from = fmt(date.from);
+      const to = fmt(date.to ?? date.from);
+      return `${from} - ${to}`;
+    }
+    if (filteredAttendance.length > 0) {
+      const first = new Date(filteredAttendance[0].tanggalAbsensi);
+      const last = new Date(
+        filteredAttendance[filteredAttendance.length - 1].tanggalAbsensi
+      );
+      const fmt = (d: Date) =>
+        d.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+      return `${fmt(first)} - ${fmt(last)}`;
+    }
+    return "-";
+  };
+
   const handleDownloadPDF = () => {
     try {
       if (!userInfo) return toast.error("Data user tidak ditemukan");
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text("LAPORAN KEHADIRAN USER", 105, 20, { align: "center" });
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      // Title
+      doc.setFontSize(18);
+      doc.text("LAPORAN KEHADIRAN", doc.internal.pageSize.getWidth() / 2, 60, {
+        align: "center",
+      });
       doc.setFontSize(12);
-      doc.text(`Nama: ${userInfo.namaUser}`, 20, 35);
-      doc.text(`Bidang Kerja: ${userInfo.bidangKerja}`, 20, 43);
+      const left = 60;
+      const lineGap = 18;
+      let y = 90;
+      doc.text(`Nama: ${userInfo.namaUser}`, left, y);
+      y += lineGap;
+      doc.text(`Bidang Kerja: ${userInfo.bidangKerja}`, left, y);
+      y += lineGap;
+      doc.text(`Pada Tanggal: ${getDateRangeText()}`, left, y);
+      y += 10;
+
       // Table
       const tableData = filteredAttendance.map((item, idx) => [
         idx + 1,
@@ -354,7 +403,28 @@ export default function UserAttendanceReport({
           ],
         ],
         body: tableData,
-        startY: 50,
+        startY: y + 10,
+        theme: "grid",
+        styles: { fontSize: 10, cellPadding: 6 },
+        headStyles: { fillColor: [240, 240, 240], textColor: 0 },
+        columnStyles: {
+          0: { cellWidth: 40, halign: "center" },
+          1: { cellWidth: 110, halign: "center" },
+          2: { cellWidth: 100, halign: "center" },
+          3: { cellWidth: 100, halign: "center" },
+          4: { cellWidth: 100, halign: "center" },
+          5: { cellWidth: 80, halign: "center" },
+        },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 5) {
+            const val = data.cell.raw as string;
+            if (val === "Valid") {
+              data.cell.styles.textColor = [0, 128, 0];
+            } else if (val === "Invalid") {
+              data.cell.styles.textColor = [200, 0, 0];
+            }
+          }
+        },
       });
       doc.save(`Laporan_User_${userInfo.namaUser}.pdf`);
       toast.success("Laporan PDF berhasil diunduh");
@@ -366,21 +436,52 @@ export default function UserAttendanceReport({
   const handleDownloadExcel = () => {
     try {
       if (!userInfo) return toast.error("Data user tidak ditemukan");
-      const excelData = filteredAttendance.map((item, idx) => ({
-        No: idx + 1,
-        Tanggal: formatDate(item.tanggalAbsensi),
-        "Absen Pagi": item.absenPagi ? formatTime(item.absenPagi) : "-",
-        "Absen Siang": item.absenSiang ? formatTime(item.absenSiang) : "-",
-        "Absen Sore": (() => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([]);
+
+      const title = ["LAPORAN KEHADIRAN"];
+      XLSX.utils.sheet_add_aoa(ws, [title], { origin: "A1" });
+      XLSX.utils.sheet_add_aoa(
+        ws,
+        [
+          [`Nama: ${userInfo.namaUser}`],
+          [`Bidang Kerja: ${userInfo.bidangKerja}`],
+          [`Pada Tanggal: ${getDateRangeText()}`],
+          [],
+        ],
+        { origin: "A2" }
+      );
+
+      const header = [
+        ["No", "Tanggal", "Absen Pagi", "Absen Siang", "Absen Sore", "Status"],
+      ];
+      XLSX.utils.sheet_add_aoa(ws, header, { origin: "A6" });
+
+      const rows = filteredAttendance.map((item, idx) => [
+        idx + 1,
+        formatDate(item.tanggalAbsensi),
+        item.absenPagi ? formatTime(item.absenPagi) : "-",
+        item.absenSiang ? formatTime(item.absenSiang) : "-",
+        (() => {
           const date = new Date(item.tanggalAbsensi);
           const isSaturday = date.getDay() === 6;
           if (isSaturday) return "*";
           return item.absenSore ? formatTime(item.absenSore) : "-";
         })(),
-        Status: item.status,
-      }));
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
+        item.status,
+      ]);
+      XLSX.utils.sheet_add_aoa(ws, rows, { origin: "A7" });
+
+      // Column widths
+      ws["!cols"] = [
+        { wch: 5 },
+        { wch: 18 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 12 },
+      ];
+
       XLSX.utils.book_append_sheet(wb, ws, "Laporan User");
       XLSX.writeFile(wb, `Laporan_User_${userInfo.namaUser}.xlsx`);
       toast.success("Laporan Excel berhasil diunduh");
@@ -392,6 +493,111 @@ export default function UserAttendanceReport({
   const handleDownloadWord = async () => {
     try {
       if (!userInfo) return toast.error("Data user tidak ditemukan");
+      const headerRows = [
+        new DocxTableRow({
+          children: [
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "No", bold: true })],
+                }),
+              ],
+              width: { size: 8, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Tanggal", bold: true })],
+                }),
+              ],
+              width: { size: 20, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Absen Pagi", bold: true })],
+                }),
+              ],
+              width: { size: 18, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Absen Siang", bold: true })],
+                }),
+              ],
+              width: { size: 18, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Absen Sore", bold: true })],
+                }),
+              ],
+              width: { size: 18, type: WidthType.PERCENTAGE },
+            }),
+            new DocxTableCell({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "Status", bold: true })],
+                }),
+              ],
+              width: { size: 18, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        }),
+      ];
+
+      const bodyRows = filteredAttendance.map(
+        (item, idx) =>
+          new DocxTableRow({
+            children: [
+              new DocxTableCell({ children: [new Paragraph(`${idx + 1}`)] }),
+              new DocxTableCell({
+                children: [new Paragraph(formatDate(item.tanggalAbsensi))],
+              }),
+              new DocxTableCell({
+                children: [
+                  new Paragraph(
+                    item.absenPagi ? formatTime(item.absenPagi) : "-"
+                  ),
+                ],
+              }),
+              new DocxTableCell({
+                children: [
+                  new Paragraph(
+                    item.absenSiang ? formatTime(item.absenSiang) : "-"
+                  ),
+                ],
+              }),
+              new DocxTableCell({
+                children: [
+                  new Paragraph(
+                    (() => {
+                      const d = new Date(item.tanggalAbsensi);
+                      const isSat = d.getDay() === 6;
+                      if (isSat) return "*";
+                      return item.absenSore ? formatTime(item.absenSore) : "-";
+                    })()
+                  ),
+                ],
+              }),
+              new DocxTableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: item.status,
+                        color: item.status === "Valid" ? "008000" : "C00000",
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          })
+      );
+
       const doc = new Document({
         sections: [
           {
@@ -399,38 +605,40 @@ export default function UserAttendanceReport({
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: "LAPORAN KEHADIRAN USER",
+                    text: "LAPORAN KEHADIRAN",
                     bold: true,
                     size: 32,
                   }),
                 ],
+                alignment: AlignmentType.CENTER,
               }),
-              new Paragraph({ text: `Nama: ${userInfo.namaUser}` }),
-              new Paragraph({ text: `Bidang Kerja: ${userInfo.bidangKerja}` }),
               new Paragraph({ text: "" }),
-              ...filteredAttendance.map(
-                (item, idx) =>
-                  new Paragraph({
-                    children: [
-                      new TextRun(
-                        `${idx + 1}. ${formatDate(
-                          item.tanggalAbsensi
-                        )} | Pagi: ${
-                          item.absenPagi ? formatTime(item.absenPagi) : "-"
-                        } | Siang: ${
-                          item.absenSiang ? formatTime(item.absenSiang) : "-"
-                        } | Sore: ${(() => {
-                          const date = new Date(item.tanggalAbsensi);
-                          const isSaturday = date.getDay() === 6;
-                          if (isSaturday) return "*";
-                          return item.absenSore
-                            ? formatTime(item.absenSore)
-                            : "-";
-                        })()} | Status: ${item.status}`
-                      ),
-                    ],
-                  })
-              ),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `Nama: ${userInfo.namaUser}`, size: 22 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Bidang Kerja: ${userInfo.bidangKerja}`,
+                    size: 22,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Pada Tanggal: ${getDateRangeText()}`,
+                    size: 22,
+                  }),
+                ],
+              }),
+              new Paragraph({ text: "" }),
+              new DocxTable({
+                rows: [...headerRows, ...bodyRows],
+                width: { size: 100, type: WidthType.PERCENTAGE },
+              }),
             ],
           },
         ],

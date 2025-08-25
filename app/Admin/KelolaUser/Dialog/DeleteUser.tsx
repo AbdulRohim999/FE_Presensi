@@ -2,7 +2,6 @@
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -10,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { deleteUser } from "@/lib/api";
 import { CheckCircle, XCircle, X as XIcon } from "lucide-react";
@@ -104,13 +104,13 @@ export function DeleteUserDialog({
           >
             Batal
           </AlertDialogCancel>
-          <AlertDialogAction
+          <Button
             onClick={handleDelete}
             disabled={isLoading}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
             {isLoading ? "Menghapus..." : "Hapus"}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
 

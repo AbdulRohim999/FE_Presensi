@@ -126,6 +126,28 @@ export default function AttendanceReport() {
     return `${description}${filterDescription ? ` ${filterDescription}` : ""}`;
   };
 
+  // Helper: teks periode rapi
+  const getPeriodText = (): string => {
+    if (date?.from) {
+      const fmt = (d: Date) =>
+        d.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+      const from = fmt(date.from);
+      const to = fmt(date.to ?? date.from);
+      return `${from} – ${to}`;
+    }
+    // Jika tidak pilih range, pakai bulan/tahun
+    if (selectedMonth !== "all") {
+      return `01 ${getMonthName(selectedMonth)} – 31 ${getMonthName(
+        selectedMonth
+      )} ${selectedYear}`;
+    }
+    return new Date().toLocaleDateString("id-ID");
+  };
+
   const fetchUsers = async () => {
     if (!token) return;
 
@@ -238,19 +260,26 @@ export default function AttendanceReport() {
 
   const handleDownloadPDF = () => {
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
 
       // Header
-      doc.setFontSize(16);
-      doc.text("LAPORAN KEHADIRAN", 105, 20, { align: "center" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.setFontSize(18);
+      doc.text("LAPORAN KEHADIRAN", pageWidth / 2, 60, { align: "center" });
       doc.setFontSize(12);
-      doc.text("STT Payakumbuh", 105, 30, { align: "center" });
-      doc.text(getDescription(), 105, 40, { align: "center" });
+      doc.text("STT Payakumbuh", pageWidth / 2, 80, { align: "center" });
+      doc.text(
+        "Laporan Kehadiran Seluruh Dosen Dan Karyawan STT Payakumbuh",
+        pageWidth / 2,
+        98,
+        { align: "center" }
+      );
+      doc.text(`Pada Tanggal: ${getPeriodText()}`, 60, 122);
 
       // Tanggal cetak
       const currentDate = new Date().toLocaleDateString("id-ID");
       doc.setFontSize(10);
-      doc.text(`Dicetak pada: ${currentDate}`, 20, 55);
+      doc.text(`Dicetak pada: ${currentDate}`, 60, 140);
 
       // Prepare table data
       const tableData = sortedData.map((record, index) => [
@@ -262,17 +291,14 @@ export default function AttendanceReport() {
         record.totalCount.toString(),
       ]);
 
-      // Footer row for average & percentage
+      // Footer row for percentage only (tanpa rata-rata)
       const footData = [
         "",
-        "Rata-Rata & Persentase",
+        "Persentase",
         "",
         "",
-        `${summary.avgValid.toFixed(1)}\n(${summary.percentValid.toFixed(1)}%)`,
-        `${summary.avgInvalid.toFixed(1)}\n(${summary.percentInvalid.toFixed(
-          1
-        )}%)`,
-        `${summary.avgTotal.toFixed(1)}`,
+        `(${summary.percentValid.toFixed(1)}%)`,
+        `(${summary.percentInvalid.toFixed(1)}%)`,
       ];
 
       // Add table
@@ -280,43 +306,51 @@ export default function AttendanceReport() {
         head: [["No", "Nama", "Bidang Kerja", "Valid", "Invalid", "Total"]],
         body: tableData,
         foot: [footData],
-        startY: 65,
+        startY: 158,
+        theme: "grid",
         styles: {
-          fontSize: 9,
-          cellPadding: 3,
+          fontSize: 10,
+          cellPadding: 6,
         },
         headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: 255,
+          fillColor: [240, 240, 240],
+          textColor: 0,
           fontStyle: "bold",
         },
         alternateRowStyles: {
-          fillColor: [245, 245, 245],
+          fillColor: [250, 250, 250],
+        },
+        columnStyles: {
+          0: { cellWidth: 40, halign: "center" },
+          1: { cellWidth: 180 },
+          2: { cellWidth: 140 },
+          3: { cellWidth: 70, halign: "center" },
+          4: { cellWidth: 70, halign: "center" },
+          5: { cellWidth: 70, halign: "center" },
         },
         footStyles: {
-          fillColor: [230, 230, 230],
+          fillColor: [235, 235, 235],
           textColor: [0, 0, 0],
           fontStyle: "bold",
         },
       });
 
-      // Add signature section
-      let y = doc.lastAutoTable?.finalY ?? 75;
-      y += 20;
-      const today = new Date();
-      const tgl = today.toLocaleDateString("id-ID", {
+      // Signature section
+      let y = doc.lastAutoTable?.finalY ?? 180;
+      y += 24;
+      const tgl = new Date().toLocaleDateString("id-ID", {
         day: "2-digit",
         month: "long",
         year: "numeric",
       });
       doc.setFontSize(11);
-      doc.text(`Payakumbuh, ${tgl}`, 160, y);
-      y += 8;
-      doc.text("Mengetahui,", 160, y);
-      y += 28;
-      doc.text("(Dr. Zulkifli, S.Kom, M.Kom)", 160, y);
-      y += 5;
-      doc.text("____________________________", 150, y);
+      doc.text(`Payakumbuh, ${tgl}`, pageWidth - 200, y);
+      y += 16;
+      doc.text("Mengetahui,", pageWidth - 200, y);
+      y += 56;
+      doc.text("(Dr. Zulkifli, S.Kom, M.Kom)", pageWidth - 230, y);
+      y += 6;
+      doc.text("____________________________", pageWidth - 260, y);
 
       // Save the PDF
       doc.save(
@@ -343,52 +377,55 @@ export default function AttendanceReport() {
 
       // Create workbook and worksheet
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
+      const ws = XLSX.utils.aoa_to_sheet([]);
 
-      // Set column widths
-      const colWidths = [
-        { wch: 5 }, // No
-        { wch: 25 }, // Nama
-        { wch: 20 }, // Bidang Kerja
-        { wch: 8 }, // Valid
-        { wch: 8 }, // Invalid
-        { wch: 8 }, // Total
-      ];
-      ws["!cols"] = colWidths;
-
-      // Add header information
+      // Header information
       XLSX.utils.sheet_add_aoa(
         ws,
         [
           ["LAPORAN KEHADIRAN"],
           ["STT Payakumbuh"],
-          [getDescription()],
+          ["Laporan Kehadiran Seluruh Dosen Dan Karyawan STT Payakumbuh"],
+          [`Pada Tanggal: ${getPeriodText()}`],
           [`Dicetak pada: ${new Date().toLocaleDateString("id-ID")}`],
-          [], // Empty row
+          [],
         ],
         { origin: "A1" }
       );
 
-      // Adjust data starting position
-      XLSX.utils.sheet_add_json(ws, excelData, { origin: "A6" });
+      // Header row
+      XLSX.utils.sheet_add_aoa(
+        ws,
+        [["No", "Nama", "Bidang Kerja", "Valid", "Invalid", "Total"]],
+        { origin: "A7" }
+      );
 
-      // Add summary row manually after data
-      const summaryRow = [
+      // Data rows
+      XLSX.utils.sheet_add_json(ws, excelData, { origin: "A8" });
+
+      // Percent row (tanpa rata-rata)
+      const percentRow = [
         "",
-        "Rata-Rata & Persentase",
+        "Persentase",
         "",
+        `${summary.percentValid.toFixed(1)}%`,
+        `${summary.percentInvalid.toFixed(1)}%`,
         "",
-        `${summary.avgValid.toFixed(1)} (${summary.percentValid.toFixed(1)}%)`,
-        `${summary.avgInvalid.toFixed(1)} (${summary.percentInvalid.toFixed(
-          1
-        )}%)`,
-        `${summary.avgTotal.toFixed(1)}`,
       ];
-      XLSX.utils.sheet_add_aoa(ws, [summaryRow], {
-        origin: `A${excelData.length + 6}`,
+      XLSX.utils.sheet_add_aoa(ws, [percentRow], {
+        origin: `A${excelData.length + 8}`,
       });
 
-      // Add worksheet to workbook
+      // Column widths
+      ws["!cols"] = [
+        { wch: 5 },
+        { wch: 28 },
+        { wch: 22 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 10 },
+      ];
+
       XLSX.utils.book_append_sheet(wb, ws, "Laporan Kehadiran");
 
       // Save the file
@@ -508,30 +545,21 @@ export default function AttendanceReport() {
               ],
             })
         ),
-        // Summary row
+        // Persentase saja
         new DocxTableRow({
           children: [
             new DocxTableCell({ children: [new Paragraph("")] }),
-            new DocxTableCell({
-              children: [new Paragraph("Rata-Rata & Persentase")],
-            }),
-            new DocxTableCell({ children: [new Paragraph("")] }),
+            new DocxTableCell({ children: [new Paragraph("Persentase")] }),
             new DocxTableCell({ children: [new Paragraph("")] }),
             new DocxTableCell({
-              children: [
-                new Paragraph(`${summary.avgValid.toFixed(1)}`),
-                new Paragraph(`(${summary.percentValid.toFixed(1)}%)`),
-              ],
+              children: [new Paragraph(`${summary.percentValid.toFixed(1)}%`)],
             }),
             new DocxTableCell({
               children: [
-                new Paragraph(`${summary.avgInvalid.toFixed(1)}`),
-                new Paragraph(`(${summary.percentInvalid.toFixed(1)}%)`),
+                new Paragraph(`${summary.percentInvalid.toFixed(1)}%`),
               ],
             }),
-            new DocxTableCell({
-              children: [new Paragraph(`${summary.avgTotal.toFixed(1)}`)],
-            }),
+            new DocxTableCell({ children: [new Paragraph("")] }),
           ],
         }),
       ];
@@ -552,10 +580,14 @@ export default function AttendanceReport() {
                 alignment: AlignmentType.CENTER,
               }),
               new Paragraph({
+                children: [new TextRun({ text: "STT Payakumbuh", size: 24 })],
+                alignment: AlignmentType.CENTER,
+              }),
+              new Paragraph({
                 children: [
                   new TextRun({
-                    text: "STT Payakumbuh",
-                    size: 24,
+                    text: "Laporan Kehadiran Seluruh Dosen Dan Karyawan STT Payakumbuh",
+                    size: 22,
                   }),
                 ],
                 alignment: AlignmentType.CENTER,
@@ -563,69 +595,15 @@ export default function AttendanceReport() {
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: getDescription(),
-                    size: 20,
+                    text: `Pada Tanggal: ${getPeriodText()}`,
+                    size: 22,
                   }),
                 ],
-                alignment: AlignmentType.CENTER,
               }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Dicetak pada: ${new Date().toLocaleDateString(
-                      "id-ID"
-                    )}`,
-                    size: 18,
-                  }),
-                ],
-                alignment: AlignmentType.LEFT,
-              }),
-              new Paragraph({ text: "" }), // Empty paragraph for spacing
+              new Paragraph({ text: "" }),
               new DocxTable({
                 rows: tableRows,
-                width: {
-                  size: 100,
-                  type: WidthType.PERCENTAGE,
-                },
-              }),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "" }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Payakumbuh, ${new Date().toLocaleDateString(
-                      "id-ID",
-                      { day: "2-digit", month: "long", year: "numeric" }
-                    )}`,
-                    size: 22,
-                  }),
-                ],
-                alignment: AlignmentType.RIGHT,
-              }),
-              new Paragraph({
-                children: [new TextRun({ text: "Mengetahui,", size: 22 })],
-                alignment: AlignmentType.RIGHT,
-              }),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "" }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: "(Dr. Zulkifli, S.Kom, M.Kom)",
-                    size: 22,
-                  }),
-                ],
-                alignment: AlignmentType.RIGHT,
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: "____________________________",
-                    size: 22,
-                  }),
-                ],
-                alignment: AlignmentType.RIGHT,
+                width: { size: 100, type: WidthType.PERCENTAGE },
               }),
             ],
           },
