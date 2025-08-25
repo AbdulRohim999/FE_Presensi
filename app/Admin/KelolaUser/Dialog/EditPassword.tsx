@@ -11,7 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { changeUserPasswordByAdmin } from "@/lib/api";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import {
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Lock,
+  XCircle,
+  X as XIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -41,6 +48,8 @@ export function EditPasswordDialog({
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,18 +102,9 @@ export function EditPasswordDialog({
         newPassword,
         confirmPassword
       );
-      toast.success("Password berhasil diubah");
-      onOpenChange(false);
-      onSubmit(newPassword);
-    } catch (err: unknown) {
-      if (typeof err === "object" && err !== null && "response" in err) {
-        const errorObj = err as { response?: { data?: { message?: string } } };
-        toast.error(
-          errorObj.response?.data?.message || "Gagal mengubah password"
-        );
-      } else {
-        toast.error("Gagal mengubah password");
-      }
+      setShowSuccess(true);
+    } catch {
+      setShowError(true);
     } finally {
       setLoading(false);
     }
@@ -210,6 +210,9 @@ export function EditPasswordDialog({
               onOpenChange(false);
               setNewPassword("");
               setConfirmPassword("");
+              setTimeout(() => {
+                window.location.reload();
+              }, 100);
             }}
             type="button"
           >
@@ -226,6 +229,72 @@ export function EditPasswordDialog({
             {loading ? "Menyimpan..." : "Simpan Password"}
           </Button>
         </AlertDialogFooter>
+
+        {/* Success Notification */}
+        {showSuccess && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 shadow-xl relative">
+              <button
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+                onClick={() => setShowSuccess(false)}
+                aria-label="Tutup"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+              <div className="flex flex-col items-center text-center gap-3">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+                <h3 className="text-xl font-semibold text-green-700">
+                  Password Berhasil Diperbarui
+                </h3>
+                <p className="text-gray-500">
+                  Password pengguna telah diperbarui dan disimpan ke sistem.
+                </p>
+                <button
+                  className="mt-2 px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  onClick={() => {
+                    setShowSuccess(false);
+                    onOpenChange(false);
+                    onSubmit(newPassword);
+                    setTimeout(() => window.location.reload(), 100);
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Notification */}
+        {showError && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 shadow-xl relative">
+              <button
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+                onClick={() => setShowError(false)}
+                aria-label="Tutup"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+              <div className="flex flex-col items-center text-center gap-3">
+                <XCircle className="w-10 h-10 text-red-600" />
+                <h3 className="text-xl font-semibold text-red-600">
+                  Gagal Memperbarui Password
+                </h3>
+                <p className="text-gray-500">
+                  Terjadi kesalahan saat memperbarui password pengguna. Silakan
+                  coba lagi.
+                </p>
+                <button
+                  className="mt-2 px-6 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold"
+                  onClick={() => setShowError(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
