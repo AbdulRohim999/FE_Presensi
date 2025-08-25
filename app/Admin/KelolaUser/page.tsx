@@ -57,6 +57,26 @@ export default function KelolaUser() {
   const [editPasswordDialogOpen, setEditPasswordDialogOpen] = useState(false);
   const [userPhotos, setUserPhotos] = useState<{ [key: number]: string }>({});
 
+  // Tambahan state untuk loading & success popup
+  const [showLoadingPopup, setShowLoadingPopup] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    firstname: string;
+    lastname: string;
+    email: string;
+    tipeUser: string;
+    bidangKerja: string;
+    status: string;
+  }>({
+    firstname: "",
+    lastname: "",
+    email: "",
+    tipeUser: "",
+    bidangKerja: "",
+    status: "",
+  });
+
   const fetchUsers = useCallback(async () => {
     if (!token) return;
 
@@ -104,6 +124,45 @@ export default function KelolaUser() {
       window.removeEventListener("refreshUsers", handleRefreshUsers);
     };
   }, [fetchUsers]);
+
+  // Listener event untuk mulai loading dari dialog
+  useEffect(() => {
+    const handleAction = (event: CustomEvent) => {
+      const { type } = event.detail || {};
+      if (type === "start") {
+        setShowLoadingPopup(true);
+        setLoadingProgress(0);
+        const interval = setInterval(() => {
+          setLoadingProgress((prev) => {
+            if (prev >= 95) {
+              clearInterval(interval);
+              return 95;
+            }
+            return prev + 5;
+          });
+        }, 150);
+      }
+    };
+    window.addEventListener("adminUserAction", handleAction as EventListener);
+    return () =>
+      window.removeEventListener(
+        "adminUserAction",
+        handleAction as EventListener
+      );
+  }, []);
+
+  // Setelah reload, tampilkan success dialog jika ada flag di sessionStorage
+  useEffect(() => {
+    const flag = sessionStorage.getItem("addUserSuccess");
+    if (flag) {
+      try {
+        const data = JSON.parse(flag);
+        setSuccessData(data);
+        setShowSuccessPopup(true);
+      } catch {}
+      sessionStorage.removeItem("addUserSuccess");
+    }
+  }, []);
 
   // Fungsi untuk mendapatkan URL foto profile user
   const getUserPhotoUrl = (user: User) => {
@@ -370,6 +429,115 @@ export default function KelolaUser() {
             // TODO: Tambahkan aksi update password jika perlu
           }}
         />
+      )}
+
+      {/* Loading Pop-up */}
+      {showLoadingPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <svg className="w-20 h-20" viewBox="0 0 36 36">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="3"
+                    strokeDasharray={`${loadingProgress}, 100`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 18 18)"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-semibold text-green-600">
+                    {loadingProgress}%
+                  </span>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-gray-900">Memproses</h3>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${loadingProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-500">Mohon tunggu sebentar...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Pop-up setelah reload */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-6 h-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">User Berhasil Dibuat!</h3>
+                <p className="text-sm text-gray-500">
+                  Data user telah tersimpan dengan sukses
+                </p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span className="text-sm text-gray-600">Nama</span>
+                <span className="text-sm font-medium">
+                  {successData.firstname} {successData.lastname}
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span className="text-sm text-gray-600">Email</span>
+                <span className="text-sm font-medium">{successData.email}</span>
+              </div>
+              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span className="text-sm text-gray-600">Tipe User</span>
+                <span className="text-sm font-medium">
+                  {successData.tipeUser}
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span className="text-sm text-gray-600">Bidang Pekerjaan</span>
+                <span className="text-sm font-medium">
+                  {successData.bidangKerja}
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span className="text-sm text-gray-600">Status</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                  {successData.status}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSuccessPopup(false)}
+              className="mt-6 w-full bg-black text-white py-3 rounded"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

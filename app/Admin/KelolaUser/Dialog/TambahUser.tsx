@@ -42,12 +42,6 @@ export function AddUserDialog() {
     status: "Aktif",
   });
 
-  // Function to refresh parent component data
-  const refreshData = () => {
-    // Trigger a custom event to refresh the parent component
-    window.dispatchEvent(new CustomEvent("refreshUsers"));
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -106,6 +100,11 @@ export function AddUserDialog() {
 
     setIsLoading(true);
 
+    // Munculkan loading overlay di parent
+    window.dispatchEvent(
+      new CustomEvent("adminUserAction", { detail: { type: "start" } })
+    );
+
     try {
       const userData = {
         firstname: formData.firstname.trim(),
@@ -118,29 +117,26 @@ export function AddUserDialog() {
         status: "Aktif",
       };
 
-      console.log("Submitting user data:", userData);
       await tambahUser(token, userData);
-      toast.success("User berhasil ditambahkan");
-      setOpen(false);
-      // Reset form
-      setFormData({
-        firstname: "",
-        lastname: "",
-        email: "",
-        username: "",
-        password: "",
-        tipeUser: "",
-        bidangKerja: "",
-        status: "Aktif",
-      });
-      refreshData(); // Call refreshData after successful addition
+
+      // Simpan payload untuk dialog sukses setelah reload
+      sessionStorage.setItem(
+        "addUserSuccess",
+        JSON.stringify({
+          firstname: userData.firstname,
+          lastname: userData.lastname,
+          email: userData.email,
+          tipeUser: userData.tipeUser,
+          bidangKerja: userData.bidangKerja,
+          status: userData.status,
+        })
+      );
+
+      // Reload halaman agar parent menampilkan dialog sukses
+      window.location.reload();
     } catch (error) {
       console.error("Error adding user:", error);
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Gagal menambahkan user");
-      }
+      toast.error("Gagal menambahkan user");
     } finally {
       setIsLoading(false);
     }
