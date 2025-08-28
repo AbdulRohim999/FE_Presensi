@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { login } from "@/lib/api";
+import { getPublicInformasiAktif, InformasiAdmin, login } from "@/lib/api";
 import { AlertCircle, Eye, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function LoginPage() {
   // Di dalam LoginPage component
@@ -48,6 +48,36 @@ export default function LoginPage() {
 
   // Tambahkan state untuk showPassword di komponen
   const [showPassword, setShowPassword] = useState(false);
+
+  // State untuk informasi publik (running text)
+  const [informasiAktif, setInformasiAktif] = useState<InformasiAdmin[]>([]);
+  const [loadingInformasi, setLoadingInformasi] = useState<boolean>(false);
+  const [errorInformasi, setErrorInformasi] = useState<string>("");
+
+  // Fetch informasi aktif (publik) saat mount
+  useEffect(() => {
+    const fetchInformasi = async () => {
+      try {
+        setLoadingInformasi(true);
+        const data = await getPublicInformasiAktif();
+        setInformasiAktif(data || []);
+      } catch {
+        setErrorInformasi("Gagal memuat informasi");
+      } finally {
+        setLoadingInformasi(false);
+      }
+    };
+    fetchInformasi();
+  }, []);
+
+  // Gabungkan teks untuk ticker: "[Judul] - [Keterangan] (Dibuat oleh: [createdBy])"
+  const tickerText = useMemo(() => {
+    if (!informasiAktif || informasiAktif.length === 0) return "";
+    const items = informasiAktif.map(
+      (i) => `${i.judul} - ${i.keterangan} (Dibuat oleh: ${i.createdBy})`
+    );
+    return items.join("    •    ");
+  }, [informasiAktif]);
 
   // Fungsi validasi email
   const validateEmail = (email: string) => {
@@ -258,6 +288,36 @@ export default function LoginPage() {
       <div className="absolute right-4 top-4 z-10">
         <ModeToggle />
       </div>
+
+      {/* Running Text (Ticker Informasi) */}
+      {(loadingInformasi || tickerText || errorInformasi) && (
+        <div className="absolute top-0 left-0 right-0 z-10">
+          <div className="w-full bg-black/60 text-white dark:bg-white/20 dark:text-white">
+            <div
+              className="whitespace-nowrap overflow-hidden"
+              aria-live="polite"
+            >
+              <div
+                className="inline-block px-4 py-2 animate-[marquee_18s_linear_infinite]"
+                style={{
+                  // Fallback jika tidak ada keyframes global
+                  willChange: "transform",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                }}
+              >
+                {loadingInformasi && !tickerText ? (
+                  <span>Memuat informasi...</span>
+                ) : errorInformasi && !tickerText ? (
+                  <span>{errorInformasi}</span>
+                ) : tickerText ? (
+                  <span>{tickerText}</span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Login Container */}
       <div className="z-10 w-full max-w-md rounded-xl bg-white/90 p-8 shadow-lg backdrop-blur-sm dark:bg-black/70">
