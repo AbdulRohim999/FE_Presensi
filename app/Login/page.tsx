@@ -61,8 +61,23 @@ export default function LoginPage() {
         setLoadingInformasi(true);
         const data = await getPublicInformasiAktif();
         setInformasiAktif(data || []);
-      } catch {
-        setErrorInformasi("Gagal memuat informasi");
+      } catch (error: unknown) {
+        let message = "Gagal memuat informasi";
+        // Coba ambil pesan dari server jika tersedia
+        if (error && typeof error === "object" && "response" in error) {
+          const errObj = error as {
+            response?: { status?: number; data?: { message?: string } };
+            message?: string;
+          };
+          const status = errObj.response?.status;
+          const serverMsg = errObj.response?.data?.message;
+          if (status) message += ` (status ${status})`;
+          if (serverMsg) message = serverMsg;
+        } else if (error instanceof Error) {
+          message = error.message || message;
+        }
+        console.error("Public informasi fetch error:", error);
+        setErrorInformasi(message);
       } finally {
         setLoadingInformasi(false);
       }
