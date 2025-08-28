@@ -336,25 +336,19 @@ export default function LoginPage() {
       {(loadingInformasi || tickerText || errorInformasi) && (
         <div className="absolute top-0 left-0 right-0 z-10">
           <div className="w-full bg-black/60 text-white dark:bg-white/20 dark:text-white">
-            <div
-              className="whitespace-nowrap overflow-hidden"
-              aria-live="polite"
-            >
-              <div
-                className="inline-block px-4 py-2 animate-[marquee_18s_linear_infinite]"
-                style={{
-                  // Fallback jika tidak ada keyframes global
-                  willChange: "transform",
-                  whiteSpace: "nowrap",
-                  display: "inline-block",
-                }}
-              >
+            <div className="marquee-wrapper" aria-live="polite">
+              {/* Gandakan konten agar loop terasa mulus */}
+              <div className="marquee-track px-4 py-2">
                 {loadingInformasi && !tickerText ? (
                   <span>Memuat informasi...</span>
                 ) : errorInformasi && !tickerText ? (
                   <span>{errorInformasi}</span>
                 ) : tickerText ? (
-                  <span>{tickerText}</span>
+                  <>
+                    <span>{tickerText}</span>
+                    <span className="px-8">•</span>
+                    <span>{tickerText}</span>
+                  </>
                 ) : null}
               </div>
             </div>
