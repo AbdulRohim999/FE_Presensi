@@ -88,7 +88,35 @@ export default function LoginPage() {
   // Gabungkan teks untuk ticker: "[Judul] - [Keterangan] (Dibuat oleh: [createdBy])"
   const tickerText = useMemo(() => {
     if (!informasiAktif || informasiAktif.length === 0) return "";
-    const items = informasiAktif.map(
+
+    // Ambil tanggal hari ini (tanpa waktu) di zona lokal
+    const today = new Date();
+    const todayDateOnly = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    ).getTime();
+
+    // Filter berdasarkan tanggalMulai <= today <= tanggalSelesai
+    const filtered = informasiAktif.filter((i) => {
+      const mulai = new Date(i.tanggalMulai);
+      const selesai = new Date(i.tanggalSelesai);
+      const mulaiDateOnly = new Date(
+        mulai.getFullYear(),
+        mulai.getMonth(),
+        mulai.getDate()
+      ).getTime();
+      const selesaiDateOnly = new Date(
+        selesai.getFullYear(),
+        selesai.getMonth(),
+        selesai.getDate()
+      ).getTime();
+      return todayDateOnly >= mulaiDateOnly && todayDateOnly <= selesaiDateOnly;
+    });
+
+    if (filtered.length === 0) return "";
+
+    const items = filtered.map(
       (i) => `${i.judul} - ${i.keterangan} (Dibuat oleh: ${i.createdBy})`
     );
     return items.join("    •    ");

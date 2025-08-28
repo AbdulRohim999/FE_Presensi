@@ -701,9 +701,7 @@ export const getUserInformasi = async (
 // Fungsi untuk mendapatkan informasi aktif (publik, tanpa token)
 export const getPublicInformasiAktif = async (): Promise<InformasiAdmin[]> => {
   try {
-    const response = await apiClient.get(
-      `${BASE_URL}/api/public/informasi/aktif`
-    );
+    const response = await apiClient.get(`${BASE_URL}/api/running-text`);
     return response.data as InformasiAdmin[];
   } catch (error) {
     console.error("Error fetching public informasi aktif:", error);
