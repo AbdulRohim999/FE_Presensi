@@ -239,7 +239,7 @@ export default function Dashboard() {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-1">
-                  Selamat datang kembali, Super Admin!
+                  Selamat datang, Super Admin!
                 </p>
               </div>
             </div>

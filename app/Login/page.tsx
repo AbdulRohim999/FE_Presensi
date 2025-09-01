@@ -446,6 +446,9 @@ export default function LoginPage() {
             >
               {isLoading ? "Loading..." : "Masuk"}
             </Button>
+            <Button className="bg-dark-500 hover:bg-dark-600 text-white">
+              Register
+            </Button>
           </form>
         </div>
       </div>
