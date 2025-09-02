@@ -69,9 +69,10 @@ const menuItems = [
     href: "/Admin/Informasi",
   },
   {
-    label : "Jurusan"
-    href : "/Admin/Jurusan"
-  }
+    icon: FileText,
+    label: "Jurusan",
+    href: "/Admin/Jurusan",
+  },
 ];
 
 export function Sidebar() {

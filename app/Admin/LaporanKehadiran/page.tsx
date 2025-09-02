@@ -474,9 +474,7 @@ export default function AttendanceReport() {
             new DocxTableCell({
               children: [
                 new Paragraph({
-                  children: [
-                    new TextRun({ text: "No", bold: true, position: "center" }),
-                  ],
+                  children: [new TextRun({ text: "No", bold: true })],
                 }),
               ],
               width: { size: 8, type: WidthType.PERCENTAGE },
