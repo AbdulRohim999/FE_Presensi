@@ -338,6 +338,7 @@ export default function AttendanceReport() {
           fillColor: [240, 240, 240],
           textColor: 0,
           fontStyle: "bold",
+          halign: "center",
         },
         alternateRowStyles: {
           fillColor: [250, 250, 250],
@@ -473,7 +474,9 @@ export default function AttendanceReport() {
             new DocxTableCell({
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: "No", bold: true })],
+                  children: [
+                    new TextRun({ text: "No", bold: true, position: "center" }),
+                  ],
                 }),
               ],
               width: { size: 8, type: WidthType.PERCENTAGE },
