@@ -48,7 +48,7 @@ import { toast } from "sonner";
 import { Navbar } from "../components/Navbar";
 import { Sidebar } from "../components/Sidebar";
 
-export default function KelolaPerizian() {
+export default function KelolaPerizinan() {
   const { token } = useAuth();
   const [izinData, setIzinData] = useState<PerizinanAdmin[]>([]);
   const currentMonth = (new Date().getMonth() + 1).toString();
