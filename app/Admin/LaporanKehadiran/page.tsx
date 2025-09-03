@@ -338,7 +338,6 @@ export default function AttendanceReport() {
           fillColor: [240, 240, 240],
           textColor: 0,
           fontStyle: "bold",
-          halign: "center",
         },
         alternateRowStyles: {
           fillColor: [250, 250, 250],
