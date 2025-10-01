@@ -68,11 +68,6 @@ const menuItems = [
     label: "Informasi",
     href: "/Admin/Informasi",
   },
-  {
-    icon: FileText,
-    label: "Jurusan",
-    href: "/Admin/Jurusan",
-  },
 ];
 
 export function Sidebar() {
